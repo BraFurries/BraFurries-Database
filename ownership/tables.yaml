@@ -1,0 +1,2434 @@
+manifest_version: 1
+last_reviewed: '2026-10-02'
+table_count_expected: 93
+schema_authority: BraFurries-Database
+semantics:
+  runtime_access: Normal application data access; excludes identity-link reads and migration execution.
+  identity_merge_writer: Historical audit field for retired destructive consolidation code; active values must remain empty.
+  current_consumers: Functional runtime consumers; Entity or Repository presence alone is excluded.
+  current_ddl_owner: Current executable source of schema mutation, not functional ownership.
+  evidence_boundary: The external production dump and schema audit are evidence, not a versioned baseline.
+tables:
+- table: active_call_logs
+  status: ACTIVE
+  domain_owner: DISCORD
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-Discord
+  runtime_writers:
+  - BraFurries-Discord
+  identity_merge_writer: []
+  current_ddl_owner: BRA_FURRIES_DISCORD_RUNTIME
+  id_semantics:
+  - TODO_FIELD_CLASSIFICATION
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-Discord
+  current_ddl_paths:
+  - BraFurries-Discord/core/database.py::initialize_active_call_logs_table
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: ''
+- table: allowed_feature_channels
+  status: ACTIVE
+  domain_owner: DISCORD
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-Discord
+  runtime_writers:
+  - BraFurries-Discord
+  identity_merge_writer: []
+  current_ddl_owner: BRA_FURRIES_DISCORD_RUNTIME
+  id_semantics:
+  - server_guild_id=DISCORD_GUILD_SNOWFLAKE_WITHOUT_FK
+  - channel_id=DISCORD_CHANNEL_SNOWFLAKE_WITHOUT_FK
+  logical_key:
+  - server_guild_id
+  - feature_key
+  - channel_id
+  physical_keys:
+    primary_key:
+    - id
+    unique_keys:
+    - - server_guild_id
+      - feature_key
+      - channel_id
+    non_unique_indexes:
+    - - server_guild_id
+      - feature_key
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-Discord
+  current_ddl_paths:
+  - BraFurries-Discord/core/database.py::initialize_allowed_feature_channels_table
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  - flyway/sql/versioned/V20260929_001__formalize_bump_configuration.sql
+  notes: No foreign keys; server_guild_id and channel_id store direct Discord snowflakes.
+- table: api_client_permissions
+  status: FUTURE_RESERVED
+  domain_owner: UNKNOWN
+  schema_authority: BraFurries-Database
+  runtime_readers: []
+  runtime_writers: []
+  identity_merge_writer: []
+  current_ddl_owner: MANUAL_OR_UNKNOWN
+  id_semantics:
+  - TODO_FIELD_CLASSIFICATION
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers: []
+  current_ddl_paths: []
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: API Entity/Repository exists, but no functional consumer is currently identified.
+- table: api_clients
+  status: FUTURE_RESERVED
+  domain_owner: UNKNOWN
+  schema_authority: BraFurries-Database
+  runtime_readers: []
+  runtime_writers: []
+  identity_merge_writer: []
+  current_ddl_owner: MANUAL_OR_UNKNOWN
+  id_semantics:
+  - TODO_FIELD_CLASSIFICATION
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers: []
+  current_ddl_paths: []
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: Reserved for future third-party client types; current OAuth flow does not consume the repository.
+- table: api_permissions
+  status: ACTIVE
+  domain_owner: API
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-API
+  runtime_writers: []
+  identity_merge_writer: []
+  current_ddl_owner: MANUAL_OR_UNKNOWN
+  id_semantics:
+  - TODO_FIELD_CLASSIFICATION
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-API
+  current_ddl_paths: []
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: Read indirectly through the active role-permission model.
+- table: api_role_permissions
+  status: ACTIVE
+  domain_owner: API
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-API
+  runtime_writers: []
+  identity_merge_writer: []
+  current_ddl_owner: MANUAL_OR_UNKNOWN
+  id_semantics:
+  - TODO_FIELD_CLASSIFICATION
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-API
+  current_ddl_paths: []
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: ''
+- table: api_roles
+  status: ACTIVE
+  domain_owner: API
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-API
+  runtime_writers: []
+  identity_merge_writer: []
+  current_ddl_owner: MANUAL_OR_UNKNOWN
+  id_semantics:
+  - TODO_FIELD_CLASSIFICATION
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-API
+  current_ddl_paths: []
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: ''
+- table: api_user_roles
+  status: ACTIVE
+  domain_owner: API
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-API
+  runtime_writers:
+  - BraFurries-API
+  identity_merge_writer: []
+  current_ddl_owner: MANUAL_OR_UNKNOWN
+  id_semantics:
+  - TODO_FIELD_CLASSIFICATION
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-API
+  current_ddl_paths: []
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: ''
+- table: backup_channels
+  status: ACTIVE
+  domain_owner: DISCORD
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-Discord
+  runtime_writers:
+  - BraFurries-Discord
+  identity_merge_writer: []
+  current_ddl_owner: BRA_FURRIES_DATABASE_FLYWAY
+  id_semantics:
+  - TODO_FIELD_CLASSIFICATION
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-Discord
+  current_ddl_paths:
+  - flyway/sql/versioned/V20261007_002__formalize_discord_backup_schema.sql
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: Runtime schema initialization is validation-only; canonical DDL is owned by Flyway.
+- table: backup_discord
+  status: ACTIVE
+  domain_owner: DISCORD
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-Discord
+  runtime_writers:
+  - BraFurries-Discord
+  identity_merge_writer: []
+  current_ddl_owner: BRA_FURRIES_DATABASE_FLYWAY
+  id_semantics:
+  - TODO_FIELD_CLASSIFICATION
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-Discord
+  current_ddl_paths:
+  - flyway/sql/versioned/V20261007_002__formalize_discord_backup_schema.sql
+  - flyway/sql/versioned/V20261007_003__track_backup_operations_and_single_snapshot_policy.sql
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: Runtime schema initialization is validation-only; canonical DDL is owned by Flyway.
+- table: backup_overwrites
+  status: ACTIVE
+  domain_owner: DISCORD
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-Discord
+  runtime_writers:
+  - BraFurries-Discord
+  identity_merge_writer: []
+  current_ddl_owner: BRA_FURRIES_DATABASE_FLYWAY
+  id_semantics:
+  - TODO_FIELD_CLASSIFICATION
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-Discord
+  current_ddl_paths:
+  - flyway/sql/versioned/V20261007_002__formalize_discord_backup_schema.sql
+  - flyway/sql/versioned/V20261008_002__classify_backup_overwrite_targets.sql
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: Overwrite targets distinguish normal roles from @everyone and Discord-managed roles; special targets are identified by Discord snowflake without synthetic backup_roles rows.
+- table: backup_roles
+  status: ACTIVE
+  domain_owner: DISCORD
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-Discord
+  runtime_writers:
+  - BraFurries-Discord
+  identity_merge_writer: []
+  current_ddl_owner: BRA_FURRIES_DATABASE_FLYWAY
+  id_semantics:
+  - TODO_FIELD_CLASSIFICATION
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-Discord
+  current_ddl_paths:
+  - flyway/sql/versioned/V20261007_002__formalize_discord_backup_schema.sql
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: Runtime schema initialization is validation-only; canonical DDL is owned by Flyway.
+- table: backup_server_settings
+  status: ACTIVE
+  domain_owner: DISCORD
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-Discord
+  runtime_writers:
+  - BraFurries-Discord
+  identity_merge_writer: []
+  current_ddl_owner: BRA_FURRIES_DATABASE_FLYWAY
+  id_semantics:
+  - TODO_FIELD_CLASSIFICATION
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-Discord
+  current_ddl_paths:
+  - flyway/sql/versioned/V20261007_002__formalize_discord_backup_schema.sql
+  - flyway/sql/versioned/V20261007_003__track_backup_operations_and_single_snapshot_policy.sql
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: Runtime schema initialization is validation-only; canonical DDL is owned by Flyway.
+- table: blacklisted_games
+  status: ACTIVE
+  domain_owner: DISCORD
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-Discord
+  runtime_writers:
+  - BraFurries-Discord
+  identity_merge_writer: []
+  current_ddl_owner: MANUAL_OR_UNKNOWN
+  id_semantics:
+  - TODO_FIELD_CLASSIFICATION
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-Discord
+  current_ddl_paths: []
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: ''
+- table: bot_sensitive_permission_whitelist
+  status: ACTIVE
+  domain_owner: DISCORD
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-Discord
+  runtime_writers:
+  - BraFurries-Discord
+  identity_merge_writer: []
+  current_ddl_owner: BRA_FURRIES_DISCORD_RUNTIME
+  id_semantics:
+  - TODO_FIELD_CLASSIFICATION
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-Discord
+  current_ddl_paths:
+  - BraFurries-Discord/core/database.py::initialize_bot_sensitive_permission_whitelist_table
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: Legacy repair includes index removal/replacement and is classified CRITICAL.
+- table: bump_monthly_reward_grants
+  status: ACTIVE
+  domain_owner: DISCORD
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-Discord
+  runtime_writers:
+  - BraFurries-Discord
+  identity_merge_writer: []
+  current_ddl_owner: BRA_FURRIES_DATABASE_FLYWAY
+  id_semantics:
+  - id=INTERNAL_BUMP_MONTHLY_REWARD_GRANT_ID
+  - run_id=INTERNAL_BUMP_MONTHLY_REWARD_RUN_ID
+  - discord_user_id=DISCORD_USER_SNOWFLAKE_WITHOUT_FK
+  - role_id=DISCORD_ROLE_SNOWFLAKE_WITHOUT_FK
+  logical_key:
+  - run_id
+  - rank_position
+  physical_keys:
+    primary_key:
+    - id
+    unique_keys:
+    - - run_id
+      - rank_position
+    - - run_id
+      - discord_user_id
+    non_unique_indexes:
+    - - run_id
+    foreign_keys:
+    - run_id=bump_monthly_reward_runs.id ON DELETE CASCADE
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-Discord
+  current_ddl_paths:
+  - BraFurries-Database/flyway/sql/versioned/V20260929_002__create_bump_monthly_reward_ledger.sql
+  evidence:
+  - flyway/sql/versioned/V20260929_002__create_bump_monthly_reward_ledger.sql
+  - operator-confirmed-manual-production-ledger-2026-09-29
+  notes: Ledger grant for one frozen ranking position; discord_user_id and role_id are direct Discord snowflakes without foreign keys. Production structure was manually applied from the canonical V20260929_002 DDL on 2026-09-29; Flyway production history is not yet adopted.
+- table: bump_monthly_reward_runs
+  status: ACTIVE
+  domain_owner: DISCORD
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-Discord
+  runtime_writers:
+  - BraFurries-Discord
+  identity_merge_writer: []
+  current_ddl_owner: BRA_FURRIES_DATABASE_FLYWAY
+  id_semantics:
+  - id=INTERNAL_BUMP_MONTHLY_REWARD_RUN_ID
+  - server_guild_id=DISCORD_GUILD_SNOWFLAKE
+  - source_channel_id=DISCORD_CHANNEL_SNOWFLAKE_WITHOUT_FK
+  - reward_role_id=DISCORD_ROLE_SNOWFLAKE_WITHOUT_FK
+  logical_key:
+  - server_guild_id
+  - period_start
+  physical_keys:
+    primary_key:
+    - id
+    unique_keys:
+    - - server_guild_id
+      - period_start
+    non_unique_indexes:
+    - - server_guild_id
+      - completed_at
+    - - period_start
+    foreign_keys:
+    - server_guild_id=community_discord.guild_id ON DELETE NO ACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-Discord
+  current_ddl_paths:
+  - BraFurries-Database/flyway/sql/versioned/V20260929_002__create_bump_monthly_reward_ledger.sql
+  evidence:
+  - flyway/sql/versioned/V20260929_002__create_bump_monthly_reward_ledger.sql
+  - operator-confirmed-manual-production-ledger-2026-09-29
+  notes: One immutable configuration snapshot per guild and closed calendar period; period_start and period_end represent [start, end). Production structure was manually applied from the canonical V20260929_002 DDL on 2026-09-29; Flyway production history is not yet adopted.
+- table: commands
+  status: LEGACY_UNIMPLEMENTED
+  domain_owner: UNKNOWN
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-API
+  runtime_writers: []
+  identity_merge_writer: []
+  current_ddl_owner: MANUAL_OR_UNKNOWN
+  id_semantics:
+  - TODO_FIELD_CLASSIFICATION
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-API
+  current_ddl_paths: []
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: API has a read path, but no producer and no completed functional flow were identified.
+- table: communities
+  status: ACTIVE
+  domain_owner: SHARED
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-Discord
+  - BraFurries-API
+  runtime_writers:
+  - BraFurries-Discord
+  - BraFurries-API
+  identity_merge_writer: []
+  current_ddl_owner: BRA_FURRIES_DATABASE_FLYWAY
+  id_semantics:
+  - id=INTERNAL_COMMUNITY_ID
+  - owner_user_id=INTERNAL_USER_ID
+  logical_key: UNKNOWN
+  physical_keys:
+    primary_key:
+    - id
+    non_unique_indexes:
+    - - owner_user_id
+    foreign_keys:
+    - owner_user_id=users.id ON DELETE RESTRICT
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-Discord
+  - BraFurries-API
+  current_ddl_paths:
+  - BraFurries-Database/flyway/sql/versioned/V20261001_002__create_community_authorization_foundation.sql
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  - flyway/sql/versioned/V20261001_002__create_community_authorization_foundation.sql
+  notes: owner_user_id is nullable so integrations may create a Community before API ownership claim; this migration performs no Owner backfill.
+- table: community_boss_attack_cooldown
+  status: ACTIVE
+  domain_owner: DISCORD
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-Discord
+  runtime_writers:
+  - BraFurries-Discord
+  identity_merge_writer: []
+  current_ddl_owner: BRA_FURRIES_DISCORD_RUNTIME
+  id_semantics:
+  - guild_id=DISCORD_GUILD_SNOWFLAKE
+  - user_id=INTERNAL_USER_ID_WITHOUT_FK
+  logical_key:
+  - guild_id
+  - user_id
+  physical_keys:
+    primary_key:
+    - id
+    unique_keys:
+    - - guild_id
+      - user_id
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-Discord
+  current_ddl_paths:
+  - BraFurries-Discord/core/database.py::initialize_boss_event_tables
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: Destructive identity consolidation is abandoned; records remain attached to their original User.
+- table: community_boss_contribution
+  status: ACTIVE
+  domain_owner: DISCORD
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-Discord
+  runtime_writers:
+  - BraFurries-Discord
+  identity_merge_writer: []
+  current_ddl_owner: BRA_FURRIES_DISCORD_RUNTIME
+  id_semantics:
+  - guild_id=DISCORD_GUILD_SNOWFLAKE
+  - user_id=INTERNAL_USER_ID_WITHOUT_FK
+  logical_key:
+  - guild_id
+  - user_id
+  physical_keys:
+    primary_key:
+    - id
+    unique_keys:
+    - - guild_id
+      - user_id
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-Discord
+  current_ddl_paths:
+  - BraFurries-Discord/core/database.py::initialize_boss_event_tables
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: Destructive identity consolidation is abandoned; records remain attached to their original User.
+- table: community_boss_event
+  status: ACTIVE
+  domain_owner: DISCORD
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-Discord
+  runtime_writers:
+  - BraFurries-Discord
+  identity_merge_writer: []
+  current_ddl_owner: BRA_FURRIES_DISCORD_RUNTIME
+  id_semantics:
+  - guild_id=DISCORD_GUILD_SNOWFLAKE
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-Discord
+  current_ddl_paths:
+  - BraFurries-Discord/core/database.py::initialize_boss_event_tables
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: ''
+- table: community_discord
+  status: ACTIVE
+  domain_owner: API
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-Discord
+  - BraFurries-API
+  runtime_writers:
+  - BraFurries-API
+  identity_merge_writer: []
+  current_ddl_owner: BRA_FURRIES_DATABASE_FLYWAY
+  id_semantics:
+  - id=COMMUNITY_DISCORD_LINK_ID
+  - community_id=INTERNAL_COMMUNITY_ID
+  - guild_id=DISCORD_GUILD_SNOWFLAKE
+  logical_key:
+  - guild_id
+  physical_keys:
+    primary_key:
+    - id
+    unique_keys:
+    - - community_id
+    - - guild_id
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-Discord
+  - BraFurries-API
+  current_ddl_paths:
+  - BraFurries-Database/flyway/sql/versioned/V20261002_002__add_network_member_state_and_events.sql
+  - BraFurries-Database/flyway/sql/versioned/V20261008_001__drop_community_discord_name_unique.sql
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  - BraFurries-API/src/main/java/com/Brafurries/API/internal/CommunityNetworkLifecycleService.java
+  - flyway/sql/versioned/V20261008_001__drop_community_discord_name_unique.sql
+  notes: Community/network lifecycle and membership-sync health are API control-plane state. Coddy observes Discord and mutates this table only through authenticated API contracts. Discord guild names are display data and may repeat; guild_id is the authoritative external identity.
+- table: community_expedition
+  status: ACTIVE
+  domain_owner: DISCORD
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-Discord
+  runtime_writers:
+  - BraFurries-Discord
+  identity_merge_writer: []
+  current_ddl_owner: BRA_FURRIES_DISCORD_RUNTIME
+  id_semantics:
+  - TODO_FIELD_CLASSIFICATION
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-Discord
+  current_ddl_paths:
+  - BraFurries-Discord/core/database.py::initialize_expedition_tables
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: ''
+- table: community_store
+  status: ACTIVE
+  domain_owner: DISCORD
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-Discord
+  runtime_writers:
+  - BraFurries-Discord
+  identity_merge_writer: []
+  current_ddl_owner: MANUAL_OR_UNKNOWN
+  id_semantics:
+  - TODO_FIELD_CLASSIFICATION
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-Discord
+  current_ddl_paths: []
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: Destructive identity consolidation is abandoned; records remain attached to their original User.
+- table: community_audit_log
+  status: ACTIVE
+  domain_owner: API
+  schema_authority: BraFurries-Database
+  runtime_readers: []
+  runtime_writers:
+  - BraFurries-API
+  identity_merge_writer: []
+  current_ddl_owner: BRA_FURRIES_DATABASE_FLYWAY
+  id_semantics:
+  - id=INTERNAL_COMMUNITY_AUDIT_ID
+  - community_id=INTERNAL_COMMUNITY_ID
+  - actor_user_id=INTERNAL_USER_ID
+  logical_key: UNKNOWN
+  physical_keys:
+    primary_key:
+    - id
+    non_unique_indexes:
+    - - community_id
+      - created_at
+      - id
+    - - actor_user_id
+      - created_at
+    foreign_keys:
+    - community_id=communities.id ON DELETE RESTRICT
+    - actor_user_id=users.id ON DELETE RESTRICT
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-API
+  current_ddl_paths:
+  - BraFurries-Database/flyway/sql/versioned/V20261001_002__create_community_authorization_foundation.sql
+  evidence:
+  - flyway/sql/versioned/V20261001_002__create_community_authorization_foundation.sql
+  notes: Reserved for API administrative audit events; metadata must not be used to copy arbitrary PII or note contents.
+- table: community_network_sync_runs
+  status: ACTIVE
+  domain_owner: API
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-API
+  runtime_writers:
+  - BraFurries-API
+  identity_merge_writer: []
+  current_ddl_owner: BRA_FURRIES_DATABASE_FLYWAY
+  id_semantics:
+  - id=INTERNAL_COMMUNITY_NETWORK_SYNC_RUN_ID
+  - community_id=INTERNAL_COMMUNITY_ID
+  - external_network_id=EXTERNAL_NETWORK_ID_WITHOUT_FK
+  logical_key: UNKNOWN
+  physical_keys:
+    primary_key:
+    - id
+    non_unique_indexes:
+    - - community_id
+      - network_type
+      - external_network_id
+    - - community_id
+      - status
+      - started_at
+    - - network_type
+      - status
+      - id
+    foreign_keys:
+    - community_id=communities.id ON DELETE RESTRICT
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-API
+  current_ddl_paths:
+  - BraFurries-Database/flyway/sql/versioned/V20261002_001__add_community_lifecycle_and_network_sync.sql
+  evidence:
+  - flyway/sql/versioned/V20261002_001__add_community_lifecycle_and_network_sync.sql
+  notes: API-owned control-plane lifecycle for Community/network sync attempts. Coddy observes network state and drives the lifecycle only through authenticated API contracts; it must not write this table directly.
+- table: community_network_member_status
+  status: ACTIVE
+  domain_owner: API
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-API
+  runtime_writers:
+  - BraFurries-API
+  identity_merge_writer: []
+  current_ddl_owner: BRA_FURRIES_DATABASE_FLYWAY
+  id_semantics:
+  - id=INTERNAL_NETWORK_MEMBERSHIP_ID
+  - community_id=INTERNAL_COMMUNITY_ID
+  - external_network_id=EXTERNAL_NETWORK_ID_WITHOUT_FK
+  - user_id=INTERNAL_USER_ID
+  logical_key:
+  - network_type
+  - external_network_id
+  - user_id
+  physical_keys:
+    primary_key:
+    - id
+    unique_keys:
+    - - network_type
+      - external_network_id
+      - user_id
+    foreign_keys:
+    - community_id=communities.id ON DELETE RESTRICT
+    - user_id=users.id ON DELETE RESTRICT
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-API
+  current_ddl_paths:
+  - BraFurries-Database/flyway/sql/versioned/V20261002_002__add_network_member_state_and_events.sql
+  evidence:
+  - flyway/sql/versioned/V20261002_002__add_network_member_state_and_events.sql
+  notes: Canonical current state for one User on one external network. Snapshot bootstrap/recovery and incremental runtime events converge on this row. No legacy Community membership is copied into a network without authoritative network observation.
+- table: community_network_member_events
+  status: ACTIVE
+  domain_owner: API
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-API
+  runtime_writers:
+  - BraFurries-API
+  identity_merge_writer: []
+  current_ddl_owner: BRA_FURRIES_DATABASE_FLYWAY
+  id_semantics:
+  - id=INTERNAL_NETWORK_MEMBERSHIP_EVENT_ID
+  - community_id=INTERNAL_COMMUNITY_ID
+  - external_network_id=EXTERNAL_NETWORK_ID_WITHOUT_FK
+  - user_id=INTERNAL_USER_ID
+  logical_key: UNKNOWN
+  physical_keys:
+    primary_key:
+    - id
+    foreign_keys:
+    - community_id=communities.id ON DELETE RESTRICT
+    - user_id=users.id ON DELETE RESTRICT
+    - sync_run_id=community_network_sync_runs.id ON DELETE SET NULL
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-API
+  current_ddl_paths:
+  - BraFurries-Database/flyway/sql/versioned/V20261002_002__add_network_member_state_and_events.sql
+  evidence:
+  - flyway/sql/versioned/V20261002_002__add_network_member_state_and_events.sql
+  notes: Append-only transition history. Routine observations that do not change membership state are not events; this prevents history volume from scaling with total member count times reconciliation frequency.
+- table: community_team_demand_roles
+  status: ACTIVE
+  domain_owner: API
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-API
+  runtime_writers:
+  - BraFurries-API
+  identity_merge_writer: []
+  current_ddl_owner: MANUAL_OR_UNKNOWN
+  id_semantics:
+  - community_id=INTERNAL_COMMUNITY_ID
+  - demand_id=INTERNAL_COMMUNITY_TEAM_DEMAND_ID
+  - role_id=INTERNAL_COMMUNITY_TEAM_ROLE_ID
+  logical_key:
+  - community_id
+  - demand_id
+  - role_id
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-API
+  current_ddl_paths: []
+  evidence:
+  - BraFurries-API/src/main/java/com/Brafurries/API/entity/community/CommunityTeamDemandRole.java
+  - BraFurries-API/src/main/java/com/Brafurries/API/repository/community/CommunityTeamDemandRoleRepository.java
+  notes: Runtime use is confirmed by API; canonical production key/FK extraction remains pending rather than being inferred from JPA alone.
+- table: community_team_demands
+  status: ACTIVE
+  domain_owner: API
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-API
+  runtime_writers:
+  - BraFurries-API
+  identity_merge_writer: []
+  current_ddl_owner: MANUAL_OR_UNKNOWN
+  id_semantics:
+  - id=INTERNAL_COMMUNITY_TEAM_DEMAND_ID
+  - community_id=INTERNAL_COMMUNITY_ID
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-API
+  current_ddl_paths: []
+  evidence:
+  - BraFurries-API/src/main/java/com/Brafurries/API/entity/community/CommunityTeamDemand.java
+  - BraFurries-API/src/main/java/com/Brafurries/API/repository/community/CommunityTeamDemandRepository.java
+  notes: Runtime use is confirmed by API; canonical production key/FK extraction remains pending rather than being inferred from JPA alone.
+- table: community_team_role_assignments
+  status: ACTIVE
+  domain_owner: API
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-API
+  runtime_writers:
+  - BraFurries-API
+  identity_merge_writer: []
+  current_ddl_owner: BRA_FURRIES_DATABASE_FLYWAY
+  id_semantics:
+  - community_id=INTERNAL_COMMUNITY_ID
+  - role_id=INTERNAL_COMMUNITY_TEAM_ROLE_ID
+  - user_id=INTERNAL_USER_ID
+  logical_key:
+  - community_id
+  - role_id
+  - user_id
+  physical_keys:
+    primary_key:
+    - community_id
+    - role_id
+    - user_id
+    non_unique_indexes:
+    - - community_id
+      - user_id
+    foreign_keys:
+    - (community_id,role_id)=community_team_roles.(community_id,id) ON DELETE RESTRICT
+    - (community_id,user_id)=user_community_status.(community_id,user_id) ON DELETE RESTRICT
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-API
+  current_ddl_paths:
+  - BraFurries-Database/flyway/sql/versioned/V20260930_002__create_community_team_role_assignments.sql
+  evidence:
+  - flyway/sql/versioned/V20260930_002__create_community_team_role_assignments.sql
+  - docs/releases/2026-09-30-community-membership-team-assignments.md
+  notes: N:N assignment between current Community membership and an internal Community Team role; both FKs are tenant-aware.
+- table: community_team_role_capabilities
+  status: ACTIVE
+  domain_owner: API
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-API
+  runtime_writers:
+  - BraFurries-API
+  identity_merge_writer: []
+  current_ddl_owner: BRA_FURRIES_DATABASE_FLYWAY
+  id_semantics:
+  - community_id=INTERNAL_COMMUNITY_ID
+  - role_id=INTERNAL_COMMUNITY_TEAM_ROLE_ID
+  - granted_by_user_id=INTERNAL_USER_ID
+  logical_key:
+  - community_id
+  - role_id
+  - capability
+  physical_keys:
+    primary_key:
+    - community_id
+    - role_id
+    - capability
+    non_unique_indexes:
+    - - granted_by_user_id
+      - created_at
+    foreign_keys:
+    - (community_id,role_id)=community_team_roles.(community_id,id) ON DELETE RESTRICT
+    - granted_by_user_id=users.id ON DELETE RESTRICT
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-API
+  current_ddl_paths:
+  - BraFurries-Database/flyway/sql/versioned/V20261001_002__create_community_authorization_foundation.sql
+  evidence:
+  - flyway/sql/versioned/V20261001_002__create_community_authorization_foundation.sql
+  notes: Stores role-derived capability codes; hierarchical scope and valid capability composition are API responsibilities.
+- table: community_team_roles
+  status: ACTIVE
+  domain_owner: API
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-API
+  runtime_writers:
+  - BraFurries-API
+  identity_merge_writer: []
+  current_ddl_owner: MANUAL_OR_UNKNOWN
+  id_semantics:
+  - id=INTERNAL_COMMUNITY_TEAM_ROLE_ID
+  - community_id=INTERNAL_COMMUNITY_ID
+  - parent_role_id=INTERNAL_COMMUNITY_TEAM_ROLE_ID
+  logical_key: UNKNOWN
+  physical_keys:
+    primary_key:
+    - id
+    unique_keys:
+    - - community_id
+      - id
+    non_unique_indexes:
+    - - community_id
+      - active
+    - - community_id
+      - parent_role_id
+    foreign_keys:
+    - community_id=communities.id ON DELETE RESTRICT
+    - (community_id,parent_role_id)=community_team_roles.(community_id,id) ON DELETE RESTRICT
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-API
+  current_ddl_paths:
+  - docs/compatibility/community_team_roles.md
+  evidence:
+  - docs/compatibility/community_team_roles.md
+  - BraFurries-API/src/main/java/com/Brafurries/API/entity/community/CommunityTeamRole.java
+  notes: Internal organizational role, independent from Discord roles. Parent FK is tenant-aware.
+- table: community_user_capability_grants
+  status: ACTIVE
+  domain_owner: API
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-API
+  runtime_writers:
+  - BraFurries-API
+  identity_merge_writer: []
+  current_ddl_owner: BRA_FURRIES_DATABASE_FLYWAY
+  id_semantics:
+  - community_id=INTERNAL_COMMUNITY_ID
+  - user_id=INTERNAL_USER_ID
+  - granted_by_user_id=INTERNAL_USER_ID
+  logical_key:
+  - community_id
+  - user_id
+  - capability
+  physical_keys:
+    primary_key:
+    - community_id
+    - user_id
+    - capability
+    non_unique_indexes:
+    - - granted_by_user_id
+      - created_at
+    foreign_keys:
+    - (community_id,user_id)=user_community_status.(community_id,user_id) ON DELETE RESTRICT
+    - granted_by_user_id=users.id ON DELETE RESTRICT
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-API
+  current_ddl_paths:
+  - BraFurries-Database/flyway/sql/versioned/V20261001_002__create_community_authorization_foundation.sql
+  evidence:
+  - flyway/sql/versioned/V20261001_002__create_community_authorization_foundation.sql
+  notes: Direct grants are Community-wide in V1; TEAM_* hierarchical scopes are intended to come from role capabilities.
+- table: community_telegram
+  status: FUTURE_RESERVED
+  domain_owner: UNKNOWN
+  schema_authority: BraFurries-Database
+  runtime_readers: []
+  runtime_writers: []
+  identity_merge_writer: []
+  current_ddl_owner: MANUAL_OR_UNKNOWN
+  id_semantics:
+  - TODO_FIELD_CLASSIFICATION
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers: []
+  current_ddl_paths: []
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: Reserved for a future Telegram-group-to-community relation.
+- table: config_command_uses
+  status: LEGACY_UNIMPLEMENTED
+  domain_owner: UNKNOWN
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-API
+  runtime_writers: []
+  identity_merge_writer: []
+  current_ddl_owner: MANUAL_OR_UNKNOWN
+  id_semantics:
+  - TODO_FIELD_CLASSIFICATION
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-API
+  current_ddl_paths: []
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: Destructive identity consolidation is abandoned; records remain attached to their original User.
+- table: config_economy
+  status: ACTIVE
+  domain_owner: DISCORD
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-Discord
+  runtime_writers:
+  - BraFurries-Discord
+  identity_merge_writer: []
+  current_ddl_owner: BRA_FURRIES_DISCORD_RUNTIME
+  id_semantics:
+  - server_guild_id=DISCORD_GUILD_SNOWFLAKE
+  logical_key:
+  - server_guild_id
+  physical_keys:
+    primary_key:
+    - id
+    unique_keys:
+    - - server_guild_id
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-Discord
+  current_ddl_paths:
+  - BraFurries-Discord/core/database.py::_ensure_economy_config_columns
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  - flyway/sql/versioned/V20260929_001__formalize_bump_configuration.sql
+  notes: DDL is lazy and can run from normal getters/setters. bump_points remains nullable by observed schema.
+- table: config_levels
+  status: ACTIVE
+  domain_owner: DISCORD
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-Discord
+  runtime_writers:
+  - BraFurries-Discord
+  identity_merge_writer: []
+  current_ddl_owner: BRA_FURRIES_DISCORD_RUNTIME
+  id_semantics:
+  - TODO_FIELD_CLASSIFICATION
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-Discord
+  current_ddl_paths:
+  - BraFurries-Discord/core/database.py::initialize_config_levels_table
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: Legacy repair contains DROP COLUMN operations and is classified CRITICAL.
+- table: config_logs
+  status: ACTIVE
+  domain_owner: DISCORD
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-Discord
+  runtime_writers:
+  - BraFurries-Discord
+  identity_merge_writer: []
+  current_ddl_owner: MANUAL_OR_UNKNOWN
+  id_semantics:
+  - TODO_FIELD_CLASSIFICATION
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-Discord
+  current_ddl_paths: []
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: ''
+- table: config_server_settings
+  status: ACTIVE
+  domain_owner: DISCORD
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-Discord
+  runtime_writers:
+  - BraFurries-Discord
+  identity_merge_writer: []
+  current_ddl_owner: BRA_FURRIES_DISCORD_RUNTIME
+  id_semantics:
+  - server_guild_id=DISCORD_GUILD_SNOWFLAKE
+  logical_key:
+  - server_guild_id
+  physical_keys:
+    primary_key:
+    - id
+    unique_keys:
+    - - server_guild_id
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-Discord
+  current_ddl_paths:
+  - BraFurries-Discord/core/database.py::initialize_trending_presence_column
+  - BraFurries-Discord/core/database.py::_ensure_ai_settings_columns
+  - BraFurries-Discord/core/database.py::multiple lazy server-setting ensure helpers
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  - flyway/sql/versioned/V20260929_001__formalize_bump_configuration.sql
+  notes: API Entity maps only a subset of the audited columns.
+- table: config_warnings_settings
+  status: ACTIVE
+  domain_owner: DISCORD
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-Discord
+  runtime_writers: []
+  identity_merge_writer: []
+  current_ddl_owner: MANUAL_OR_UNKNOWN
+  id_semantics:
+  - TODO_FIELD_CLASSIFICATION
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-Discord
+  current_ddl_paths: []
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: ''
+- table: discord_role_division
+  status: LEGACY_UNUSED
+  domain_owner: DISCORD
+  schema_authority: BraFurries-Database
+  runtime_readers: []
+  runtime_writers: []
+  identity_merge_writer: []
+  current_ddl_owner: MANUAL_OR_UNKNOWN
+  id_semantics:
+  - TODO_FIELD_CLASSIFICATION
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers: []
+  current_ddl_paths: []
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: Historical/visual Discord role-division design; no current use identified.
+- table: discord_server_messages
+  status: ACTIVE
+  domain_owner: DISCORD
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-Discord
+  runtime_writers:
+  - BraFurries-Discord
+  identity_merge_writer: []
+  current_ddl_owner: MANUAL_OR_UNKNOWN
+  id_semantics:
+  - TODO_FIELD_CLASSIFICATION
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-Discord
+  current_ddl_paths: []
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: ''
+- table: event_scheduling
+  status: ACTIVE
+  domain_owner: API
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-API
+  runtime_writers:
+  - BraFurries-API
+  identity_merge_writer: []
+  current_ddl_owner: MANUAL_OR_UNKNOWN
+  id_semantics:
+  - TODO_FIELD_CLASSIFICATION
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-API
+  current_ddl_paths: []
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: Audited nullability can conflict with operation when Google Calendar integration is unavailable.
+- table: event_staffs
+  status: ACTIVE
+  domain_owner: API
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-API
+  runtime_writers:
+  - BraFurries-API
+  identity_merge_writer: []
+  current_ddl_owner: MANUAL_OR_UNKNOWN
+  id_semantics:
+  - TODO_FIELD_CLASSIFICATION
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-API
+  current_ddl_paths: []
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: ''
+- table: event_transfer_logs
+  status: ACTIVE
+  domain_owner: API
+  schema_authority: BraFurries-Database
+  runtime_readers: []
+  runtime_writers:
+  - BraFurries-API
+  identity_merge_writer: []
+  current_ddl_owner: MANUAL_OR_UNKNOWN
+  id_semantics:
+  - TODO_FIELD_CLASSIFICATION
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-API
+  current_ddl_paths: []
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: ''
+- table: event_transfer_requests
+  status: ACTIVE
+  domain_owner: API
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-API
+  runtime_writers:
+  - BraFurries-API
+  identity_merge_writer: []
+  current_ddl_owner: MANUAL_OR_UNKNOWN
+  id_semantics:
+  - TODO_FIELD_CLASSIFICATION
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-API
+  current_ddl_paths: []
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: ''
+- table: events
+  status: ACTIVE
+  domain_owner: SHARED
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-Discord
+  - BraFurries-API
+  runtime_writers:
+  - BraFurries-API
+  identity_merge_writer: []
+  current_ddl_owner: MANUAL_OR_UNKNOWN
+  id_semantics:
+  - TODO_FIELD_CLASSIFICATION
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-Discord
+  - BraFurries-API
+  current_ddl_paths: []
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: Destructive identity consolidation is abandoned; records remain attached to their original User.
+- table: form_decisions
+  status: ACTIVE
+  domain_owner: DISCORD
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-Discord
+  runtime_writers:
+  - BraFurries-Discord
+  identity_merge_writer: []
+  current_ddl_owner: BRA_FURRIES_DISCORD_RUNTIME
+  id_semantics:
+  - TODO_FIELD_CLASSIFICATION
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-Discord
+  current_ddl_paths:
+  - BraFurries-Discord/core/database.py::initialize_form_tables
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: ''
+- table: form_flows
+  status: ACTIVE
+  domain_owner: DISCORD
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-Discord
+  runtime_writers:
+  - BraFurries-Discord
+  identity_merge_writer: []
+  current_ddl_owner: BRA_FURRIES_DISCORD_RUNTIME
+  id_semantics:
+  - TODO_FIELD_CLASSIFICATION
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-Discord
+  current_ddl_paths:
+  - BraFurries-Discord/core/database.py::initialize_form_tables
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: Runtime expected indexes differ from the audited production dump.
+- table: form_published_messages
+  status: ACTIVE
+  domain_owner: DISCORD
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-Discord
+  runtime_writers:
+  - BraFurries-Discord
+  identity_merge_writer: []
+  current_ddl_owner: BRA_FURRIES_DISCORD_RUNTIME
+  id_semantics:
+  - TODO_FIELD_CLASSIFICATION
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-Discord
+  current_ddl_paths:
+  - BraFurries-Discord/core/database.py::initialize_form_tables
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: ''
+- table: form_questions
+  status: ACTIVE
+  domain_owner: DISCORD
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-Discord
+  runtime_writers:
+  - BraFurries-Discord
+  identity_merge_writer: []
+  current_ddl_owner: BRA_FURRIES_DISCORD_RUNTIME
+  id_semantics:
+  - TODO_FIELD_CLASSIFICATION
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-Discord
+  current_ddl_paths:
+  - BraFurries-Discord/core/database.py::initialize_form_tables
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: ''
+- table: form_submissions
+  status: ACTIVE
+  domain_owner: DISCORD
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-Discord
+  runtime_writers:
+  - BraFurries-Discord
+  identity_merge_writer: []
+  current_ddl_owner: BRA_FURRIES_DISCORD_RUNTIME
+  id_semantics:
+  - user_id=DISCORD_USER_SNOWFLAKE_WITHOUT_FK
+  - guild_id=DISCORD_GUILD_SNOWFLAKE_WITHOUT_FK
+  - channel_id=DISCORD_CHANNEL_SNOWFLAKE_WITHOUT_FK
+  - message_id=DISCORD_MESSAGE_SNOWFLAKE_WITHOUT_FK
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-Discord
+  current_ddl_paths:
+  - BraFurries-Discord/core/database.py::initialize_form_tables
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: ''
+- table: invites
+  status: ACTIVE
+  domain_owner: API
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-API
+  runtime_writers:
+  - BraFurries-API
+  identity_merge_writer: []
+  current_ddl_owner: MANUAL_OR_UNKNOWN
+  id_semantics:
+  - TODO_FIELD_CLASSIFICATION
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-API
+  current_ddl_paths: []
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: ''
+- table: locale
+  status: ACTIVE
+  domain_owner: SHARED
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-Discord
+  - BraFurries-API
+  runtime_writers: []
+  identity_merge_writer: []
+  current_ddl_owner: MANUAL_OR_UNKNOWN
+  id_semantics:
+  - TODO_FIELD_CLASSIFICATION
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-Discord
+  - BraFurries-API
+  current_ddl_paths: []
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: Current producer/maintenance path is UNKNOWN.
+- table: minigame_scores
+  status: ACTIVE
+  domain_owner: DISCORD
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-Discord
+  runtime_writers:
+  - BraFurries-Discord
+  identity_merge_writer: []
+  current_ddl_owner: BRA_FURRIES_DISCORD_RUNTIME
+  id_semantics:
+  - TODO_FIELD_CLASSIFICATION
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-Discord
+  current_ddl_paths:
+  - BraFurries-Discord/core/database.py::initialize_minigame_scores_table
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: Confirmed Discord ownership. API has two Entity/Repository models; duplication is suspicious, but a bean-name collision is not established.
+- table: partner_external_links
+  status: ACTIVE
+  domain_owner: API
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-API
+  runtime_writers:
+  - BraFurries-API
+  identity_merge_writer: []
+  current_ddl_owner: MANUAL_OR_UNKNOWN
+  id_semantics:
+  - TODO_FIELD_CLASSIFICATION
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-API
+  current_ddl_paths: []
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: Read/write is performed through Partner cascade/orphan removal.
+- table: partner_links
+  status: ACTIVE
+  domain_owner: API
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-API
+  runtime_writers:
+  - BraFurries-API
+  identity_merge_writer: []
+  current_ddl_owner: MANUAL_OR_UNKNOWN
+  id_semantics:
+  - target_id=POLYMORPHIC_INTERNAL_TARGET_WITHOUT_FK
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-API
+  current_ddl_paths: []
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: Destructive identity consolidation is abandoned; records remain attached to their original User.
+- table: partner_metrics
+  status: LEGACY_UNIMPLEMENTED
+  domain_owner: API
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-API
+  runtime_writers: []
+  identity_merge_writer: []
+  current_ddl_owner: MANUAL_OR_UNKNOWN
+  id_semantics:
+  - TODO_FIELD_CLASSIFICATION
+  logical_key:
+  - partner_id
+  - metric_date
+  physical_keys:
+    primary_key:
+    - id
+    unique_keys:
+    - - partner_id
+      - metric_date
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-API
+  current_ddl_paths: []
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: Read path exists, but no producer or completed feature was identified.
+- table: partner_token
+  status: LEGACY_OBSOLETE_DESIGN
+  domain_owner: UNKNOWN
+  schema_authority: BraFurries-Database
+  runtime_readers: []
+  runtime_writers: []
+  identity_merge_writer: []
+  current_ddl_owner: MANUAL_OR_UNKNOWN
+  id_semantics:
+  - TODO_FIELD_CLASSIFICATION
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers: []
+  current_ddl_paths: []
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: Credential strategy must be redesigned before any future use.
+- table: partners
+  status: ACTIVE
+  domain_owner: API
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-API
+  runtime_writers:
+  - BraFurries-API
+  identity_merge_writer: []
+  current_ddl_owner: MANUAL_OR_UNKNOWN
+  id_semantics:
+  - representative_user_id=INTERNAL_USER_ID_WITHOUT_FK
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-API
+  current_ddl_paths: []
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: Destructive identity consolidation is abandoned; records remain attached to their original User.
+- table: portaria_account_release
+  status: ACTIVE
+  domain_owner: DISCORD
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-Discord
+  runtime_writers:
+  - BraFurries-Discord
+  identity_merge_writer: []
+  current_ddl_owner: BRA_FURRIES_DISCORD_RUNTIME
+  id_semantics:
+  - server_guild_id=DISCORD_GUILD_SNOWFLAKE_WITHOUT_FK
+  - user_id=DISCORD_USER_SNOWFLAKE_WITHOUT_FK
+  - released_by=DISCORD_USER_SNOWFLAKE_WITHOUT_FK
+  logical_key:
+  - server_guild_id
+  - user_id
+  physical_keys:
+    primary_key:
+    - id
+    unique_keys:
+    - - server_guild_id
+      - user_id
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-Discord
+  current_ddl_paths:
+  - BraFurries-Discord/core/database.py::initialize_portaria_account_release_table
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: ''
+- table: portaria_base_config
+  status: ACTIVE
+  domain_owner: DISCORD
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-Discord
+  runtime_writers:
+  - BraFurries-Discord
+  identity_merge_writer: []
+  current_ddl_owner: BRA_FURRIES_DISCORD_RUNTIME
+  id_semantics:
+  - TODO_FIELD_CLASSIFICATION
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-Discord
+  current_ddl_paths:
+  - BraFurries-Discord/core/database.py::initialize_portaria_base_config_table
+  - BraFurries-Database/flyway/sql/versioned/V20261002_001__add_community_lifecycle_and_network_sync.sql
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: Legacy repair includes column transitions, backfill, and DROP COLUMN; classified CRITICAL. portaria_enabled is an independent lifecycle flag; its DEFAULT 1 preserves legacy enabled behavior and does not derive from formulario_portaria_ativo.
+- table: schema_migrations
+  status: LEGACY_MIGRATION_HISTORY
+  domain_owner: INFRASTRUCTURE
+  schema_authority: BraFurries-Database
+  runtime_readers: []
+  runtime_writers: []
+  identity_merge_writer: []
+  current_ddl_owner: BRA_FURRIES_DISCORD_LEGACY_RUNNER
+  id_semantics: []
+  logical_key:
+  - version
+  physical_keys:
+    primary_key:
+    - version
+  merge_policy: PRESERVE_LEGACY_HISTORY
+  current_consumers:
+  - BraFurries-Discord-Migration-Runner
+  current_ddl_paths:
+  - BraFurries-Discord/scripts/run_migrations.py
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: Do not import into flyway_schema_history and do not remove in Phase 1.
+- table: stats_monthly_game_activity
+  status: ACTIVE
+  domain_owner: DISCORD
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-Discord
+  runtime_writers:
+  - BraFurries-Discord
+  identity_merge_writer: []
+  current_ddl_owner: MANUAL_OR_UNKNOWN
+  id_semantics:
+  - server_guild_id=DISCORD_GUILD_SNOWFLAKE
+  logical_key:
+  - server_guild_id
+  - month
+  - game_name
+  physical_keys:
+    primary_key:
+    - id
+    unique_keys:
+    - - month
+      - game_name
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-Discord
+  current_ddl_paths: []
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: Confirmed key divergence. Ten guilds have game_time, but only one appears in monthly aggregates; nine are absent. Do not infer historical redistribution.
+- table: stats_weekly_game_activity
+  status: ACTIVE
+  domain_owner: DISCORD
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-Discord
+  runtime_writers:
+  - BraFurries-Discord
+  identity_merge_writer: []
+  current_ddl_owner: MANUAL_OR_UNKNOWN
+  id_semantics:
+  - server_guild_id=DISCORD_GUILD_SNOWFLAKE
+  logical_key:
+  - server_guild_id
+  - week
+  - game_name
+  physical_keys:
+    primary_key:
+    - id
+    unique_keys:
+    - - week
+      - game_name
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-Discord
+  current_ddl_paths: []
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: Confirmed key divergence. Ten guilds have game_time, but only one appears in weekly aggregates; nine are absent. Batch upsert and job/config behavior both require investigation.
+- table: telegram_event_messages
+  status: LEGACY_ABANDONED
+  domain_owner: UNKNOWN
+  schema_authority: BraFurries-Database
+  runtime_readers: []
+  runtime_writers: []
+  identity_merge_writer: []
+  current_ddl_owner: MANUAL_OR_UNKNOWN
+  id_semantics:
+  - TODO_FIELD_CLASSIFICATION
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers: []
+  current_ddl_paths: []
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: Belonged to an unfinished Telegram event-message application. API has two Entity/Repository models; duplication is suspicious, but a bean-name collision is not established.
+- table: user_bans
+  status: ACTIVE
+  domain_owner: SHARED
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-Discord
+  - BraFurries-API
+  runtime_writers:
+  - BraFurries-Discord
+  identity_merge_writer: []
+  current_ddl_owner: BRA_FURRIES_DISCORD_RUNTIME
+  id_semantics:
+  - user_id=INTERNAL_USER_ID
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-Discord
+  - BraFurries-API
+  current_ddl_paths:
+  - BraFurries-Discord/core/database.py::initialize_user_bans_registered_at_column
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: Destructive identity consolidation is abandoned; records remain attached to their original User.
+- table: user_ban_discord_effects
+  status: ACTIVE
+  domain_owner: DISCORD
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-Discord
+  runtime_writers:
+  - BraFurries-Discord
+  identity_merge_writer: []
+  current_ddl_owner: BRA_FURRIES_DATABASE_FLYWAY
+  id_semantics:
+  - ban_id=INTERNAL_USER_BAN_ID
+  - identity_user_id=INTERNAL_USER_ID
+  - discord_user_id=DISCORD_USER_SNOWFLAKE_WITHOUT_FK
+  logical_key: ban_id+discord_user_id
+  physical_keys:
+  - uq_user_ban_effect_ban_discord
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-Discord
+  current_ddl_paths:
+  - flyway/sql/versioned/V20261001_001__create_user_ban_discord_effects.sql
+  evidence:
+  - versioned-migration
+  notes: Records tenant-scoped Discord effects of one origin user_bans action; it never resolves identity links.
+- table: user_birthday
+  status: ACTIVE
+  domain_owner: SHARED
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-Discord
+  - BraFurries-API
+  runtime_writers:
+  - BraFurries-Discord
+  identity_merge_writer: []
+  current_ddl_owner: BRA_FURRIES_DISCORD_RUNTIME
+  id_semantics:
+  - user_id=INTERNAL_USER_ID
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-Discord
+  - BraFurries-API
+  current_ddl_paths:
+  - BraFurries-Discord/core/database.py::initialize_user_birthday_registration_columns
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: Destructive identity consolidation is abandoned; records remain attached to their original User.
+- table: user_community_status
+  status: ACTIVE
+  domain_owner: SHARED
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-Discord
+  - BraFurries-API
+  runtime_writers:
+  - BraFurries-Discord
+  - BraFurries-API
+  identity_merge_writer: []
+  current_ddl_owner: BRA_FURRIES_DISCORD_RUNTIME
+  id_semantics:
+  - user_id=INTERNAL_USER_ID
+  - community_id=INTERNAL_COMMUNITY_ID
+  logical_key:
+  - user_id
+  - community_id
+  physical_keys:
+    primary_key:
+    - id
+    unique_keys:
+    - - community_id
+      - user_id
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-Discord
+  - BraFurries-API
+  current_ddl_paths:
+  - BraFurries-Discord/core/database.py::initialize_user_community_status_invite_columns
+  - BraFurries-Discord/core/database.py::_ensure_birthday_mentionable_column
+  - BraFurries-Database/flyway/sql/versioned/V20260930_001__enforce_unique_user_community_status.sql
+  - BraFurries-Database/flyway/sql/versioned/V20261002_001__add_community_lifecycle_and_network_sync.sql
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  - flyway/sql/versioned/V20260930_001__enforce_unique_user_community_status.sql
+  - docs/releases/2026-09-30-community-membership-team-assignments.md
+  notes: Current membership is uniquely enforced per (community_id, user_id). Nullable presence fields remain observational legacy state; authorization must fail closed when membership is not valid. approval_required remains nullable for pre-existing and otherwise unknown applicability; display_name is the canonical name scoped to this User/Community row.
+- table: user_custom_roles
+  status: ACTIVE
+  domain_owner: DISCORD
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-Discord
+  runtime_writers:
+  - BraFurries-Discord
+  identity_merge_writer: []
+  current_ddl_owner: BRA_FURRIES_DISCORD_RUNTIME
+  id_semantics:
+  - TODO_FIELD_CLASSIFICATION
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-Discord
+  current_ddl_paths:
+  - BraFurries-Discord/core/database.py::_ensure_user_custom_roles_columns
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: Destructive identity consolidation is abandoned; records remain attached to their original User.
+- table: user_discord
+  status: ACTIVE
+  domain_owner: SHARED
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-Discord
+  - BraFurries-API
+  runtime_writers:
+  - BraFurries-Discord
+  - BraFurries-API
+  identity_merge_writer: []
+  current_ddl_owner: BRA_FURRIES_DISCORD_SQL_MIGRATION
+  id_semantics:
+  - id=USER_DISCORD_LINK_ID
+  - user_id=INTERNAL_USER_ID
+  - discord_user_id=DISCORD_USER_SNOWFLAKE_WITHOUT_FK
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-Discord
+  - BraFurries-API
+  current_ddl_paths:
+  - BraFurries-Discord/migrations/20260813_01_expand_display_names.sql
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: ''
+- table: user_economy
+  status: ACTIVE
+  domain_owner: SHARED
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-Discord
+  - BraFurries-API
+  runtime_writers:
+  - BraFurries-Discord
+  identity_merge_writer: []
+  current_ddl_owner: BRA_FURRIES_DISCORD_RUNTIME
+  id_semantics:
+  - user_id=INTERNAL_USER_ID
+  - server_guild_id=DISCORD_GUILD_SNOWFLAKE
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-Discord
+  - BraFurries-API
+  current_ddl_paths:
+  - BraFurries-Discord/core/database.py::initialize_user_economy_table
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: Runtime and production definitions differ in numeric type and foreign-key behavior.
+- table: user_inventory
+  status: ACTIVE
+  domain_owner: DISCORD
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-Discord
+  runtime_writers:
+  - BraFurries-Discord
+  identity_merge_writer: []
+  current_ddl_owner: BRA_FURRIES_DISCORD_RUNTIME
+  id_semantics:
+  - user_id=INTERNAL_USER_ID
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-Discord
+  current_ddl_paths:
+  - BraFurries-Discord/core/database.py::_ensure_user_inventory_schema
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: Destructive identity consolidation is abandoned; records remain attached to their original User.
+- table: user_identity_links
+  status: ACTIVE
+  domain_owner: API
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-API
+  - BraFurries-Discord
+  runtime_writers:
+  - BraFurries-API
+  identity_merge_writer: []
+  current_ddl_owner: BRA_FURRIES_DATABASE_FLYWAY
+  id_semantics:
+  - id=IDENTITY_LINK_ID
+  - user_a_id=INTERNAL_USER_ID
+  - user_b_id=INTERNAL_USER_ID
+  - linked_by_user_id=INTERNAL_USER_ID
+  - revoked_by_user_id=INTERNAL_USER_ID
+  logical_key:
+  - active_user_low_id
+  - active_user_high_id
+  physical_keys:
+    primary_key:
+    - id
+    unique_keys:
+    - - active_user_low_id
+      - active_user_high_id
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-API
+  - BraFurries-Discord
+  current_ddl_paths:
+  - BraFurries-Database/flyway/sql/versioned/V20260924_001__create_user_identity_links.sql
+  - BraFurries-Database/flyway/sql/versioned/V20260930_003__make_user_identity_links_undirected.sql
+  evidence:
+  - operator-confirmed-manual-production-structure-2026-09-24
+  - V20260924_001
+  - V20260930_003
+  notes: Undirected edge between equivalent user_a_id/user_b_id endpoints. CONFIRMED edges form transitive identity clusters for moderation reads; SUSPECTED is context only.
+- table: user_level
+  status: ACTIVE
+  domain_owner: SHARED
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-Discord
+  - BraFurries-API
+  runtime_writers:
+  - BraFurries-Discord
+  identity_merge_writer: []
+  current_ddl_owner: BRA_FURRIES_DISCORD_RUNTIME
+  id_semantics:
+  - user_id=INTERNAL_USER_ID
+  - server_guild_id=DISCORD_GUILD_SNOWFLAKE
+  logical_key:
+  - user_id
+  - server_guild_id
+  physical_keys:
+    primary_key:
+    - id
+    unique_keys:
+    - - id
+    - - user_id
+    non_unique_indexes:
+    - - user_id
+      - server_guild_id
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-Discord
+  - BraFurries-API
+  current_ddl_paths:
+  - BraFurries-Discord/core/database.py::initialize_user_level_voice_xp_columns
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: 'Confirmed divergence: UNIQUE(user_id) conflicts with per-guild XP. 142 users need 161 additional guild partitions; 39 rows require reconciliation and are not confirmed corruption.'
+- table: user_locale
+  status: ACTIVE
+  domain_owner: SHARED
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-Discord
+  - BraFurries-API
+  runtime_writers:
+  - BraFurries-Discord
+  identity_merge_writer: []
+  current_ddl_owner: MANUAL_OR_UNKNOWN
+  id_semantics:
+  - user_id=INTERNAL_USER_ID
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-Discord
+  - BraFurries-API
+  current_ddl_paths: []
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: ''
+- table: community_member_notes
+  status: ACTIVE
+  domain_owner: API
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-API
+  runtime_writers:
+  - BraFurries-API
+  identity_merge_writer: []
+  current_ddl_owner: BRA_FURRIES_DATABASE_FLYWAY
+  id_semantics:
+  - id=INTERNAL_COMMUNITY_MEMBER_NOTE_ID
+  - community_id=INTERNAL_COMMUNITY_ID
+  - user_id=INTERNAL_USER_ID
+  - author_user_id=INTERNAL_USER_ID
+  - updated_by_user_id=INTERNAL_USER_ID
+  logical_key: UNKNOWN
+  physical_keys:
+    primary_key:
+    - id
+    non_unique_indexes:
+    - - community_id
+      - user_id
+      - archived_at
+      - created_at
+      - id
+    - - author_user_id
+      - created_at
+    - - updated_by_user_id
+    foreign_keys:
+    - (community_id,user_id)=user_community_status.(community_id,user_id) ON DELETE RESTRICT
+    - author_user_id=users.id ON DELETE RESTRICT
+    - updated_by_user_id=users.id ON DELETE RESTRICT
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-API
+  current_ddl_paths:
+  - BraFurries-Database/flyway/sql/versioned/V20261001_003__create_community_member_notes.sql
+  evidence:
+  - flyway/sql/versioned/V20261001_003__create_community_member_notes.sql
+  notes: Community-scoped administrative notes. Separate from legacy global user_notes. Application flow archives instead of hard-deleting and audit metadata must not copy note content.
+- table: user_notes
+  status: ACTIVE
+  domain_owner: DISCORD
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-Discord
+  runtime_writers:
+  - BraFurries-Discord
+  identity_merge_writer: []
+  current_ddl_owner: MANUAL_OR_UNKNOWN
+  id_semantics:
+  - user_id=INTERNAL_USER_ID
+  - author_user_id=INTERNAL_USER_ID
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-Discord
+  current_ddl_paths: []
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: Destructive identity consolidation is abandoned; records remain attached to their original User.
+- table: user_patreon
+  status: UNKNOWN
+  domain_owner: UNKNOWN
+  schema_authority: BraFurries-Database
+  runtime_readers: []
+  runtime_writers: []
+  identity_merge_writer: []
+  current_ddl_owner: MANUAL_OR_UNKNOWN
+  id_semantics:
+  - user_id=INTERNAL_USER_ID
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers: []
+  current_ddl_paths: []
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: Destructive identity consolidation is abandoned; records remain attached to their original User.
+- table: user_permissions
+  status: LEGACY_UNUSED
+  domain_owner: UNKNOWN
+  schema_authority: BraFurries-Database
+  runtime_readers: []
+  runtime_writers: []
+  identity_merge_writer: []
+  current_ddl_owner: MANUAL_OR_UNKNOWN
+  id_semantics:
+  - user_id=INTERNAL_USER_ID
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers: []
+  current_ddl_paths: []
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: Old user-permission model; do not confuse with active api_permissions. Audited schema has no primary/unique key matching JPA identity assumptions.
+- table: user_records
+  status: ACTIVE
+  domain_owner: DISCORD
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-Discord
+  runtime_writers:
+  - BraFurries-Discord
+  identity_merge_writer: []
+  current_ddl_owner: MANUAL_OR_UNKNOWN
+  id_semantics:
+  - user_id=INTERNAL_USER_ID
+  - server_guild_id=DISCORD_GUILD_SNOWFLAKE
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-Discord
+  current_ddl_paths: []
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: Destructive identity consolidation is abandoned; records remain attached to their original User.
+- table: user_refresh_tokens
+  status: ACTIVE
+  domain_owner: API
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-API
+  runtime_writers:
+  - BraFurries-API
+  identity_merge_writer: []
+  current_ddl_owner: MANUAL_OR_UNKNOWN
+  id_semantics:
+  - user_id=INTERNAL_USER_ID
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-API
+  current_ddl_paths: []
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: ''
+- table: user_telegram
+  status: ACTIVE
+  domain_owner: SHARED
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-Discord
+  - BraFurries-API
+  runtime_writers:
+  - BraFurries-Discord
+  identity_merge_writer: []
+  current_ddl_owner: BRA_FURRIES_DISCORD_SQL_MIGRATION
+  id_semantics:
+  - user_id=INTERNAL_USER_ID
+  - telegram identity fields=TODO_FIELD_CLASSIFICATION
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-Discord
+  - BraFurries-API
+  current_ddl_paths:
+  - BraFurries-Discord/migrations/20260813_01_expand_display_names.sql
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: Destructive identity consolidation is abandoned; records remain attached to their original User.
+- table: user_temp_roles
+  status: ACTIVE
+  domain_owner: DISCORD
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-Discord
+  runtime_writers:
+  - BraFurries-Discord
+  identity_merge_writer: []
+  current_ddl_owner: MANUAL_OR_UNKNOWN
+  id_semantics:
+  - disc_user_id=USER_DISCORD_LINK_ID
+  - disc_community_id=COMMUNITY_DISCORD_LINK_ID
+  - role_id=DISCORD_ROLE_SNOWFLAKE
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-Discord
+  current_ddl_paths: []
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: disc_user_id is not a Discord snowflake.
+- table: user_tokens
+  status: ACTIVE
+  domain_owner: API
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-API
+  runtime_writers:
+  - BraFurries-API
+  identity_merge_writer: []
+  current_ddl_owner: MANUAL_OR_UNKNOWN
+  id_semantics:
+  - user_id=INTERNAL_USER_ID
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-API
+  current_ddl_paths: []
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: ''
+- table: user_warnings
+  status: ACTIVE
+  domain_owner: SHARED
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-Discord
+  - BraFurries-API
+  runtime_writers:
+  - BraFurries-Discord
+  identity_merge_writer: []
+  current_ddl_owner: MANUAL_OR_UNKNOWN
+  id_semantics:
+  - user_id=INTERNAL_USER_ID
+  - applied_by=INTERNAL_USER_ID
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-Discord
+  - BraFurries-API
+  current_ddl_paths: []
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: Destructive identity consolidation is abandoned; records remain attached to their original User.
+- table: users
+  status: ACTIVE
+  domain_owner: SHARED
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-Discord
+  - BraFurries-API
+  runtime_writers:
+  - BraFurries-Discord
+  - BraFurries-API
+  identity_merge_writer: []
+  current_ddl_owner: BRA_FURRIES_DISCORD_SQL_MIGRATION
+  id_semantics:
+  - id=INTERNAL_USER_ID
+  logical_key:
+  - id
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-Discord
+  - BraFurries-API
+  current_ddl_paths:
+  - BraFurries-Discord/migrations/20260813_01_expand_display_names.sql
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: Destructive identity consolidation is abandoned; records remain attached to their original User.
+- table: voice_sessions
+  status: ACTIVE
+  domain_owner: DISCORD
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-Discord
+  runtime_writers:
+  - BraFurries-Discord
+  identity_merge_writer: []
+  current_ddl_owner: BRA_FURRIES_DISCORD_RUNTIME
+  id_semantics:
+  - server_guild_id=DISCORD_GUILD_SNOWFLAKE_WITHOUT_FK
+  - discord_user_id=DISCORD_USER_SNOWFLAKE_WITHOUT_FK
+  - voice_channel_id=DISCORD_CHANNEL_SNOWFLAKE_WITHOUT_FK
+  logical_key:
+  - server_guild_id
+  - discord_user_id
+  physical_keys:
+    primary_key:
+    - server_guild_id
+    - discord_user_id
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-Discord
+  current_ddl_paths:
+  - BraFurries-Discord/core/database.py::_ensure_voice_sessions_table
+  - BraFurries-Discord/cogs/xp.py::XpCog initialization
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: Runtime may rename voice_xp_sessions; classified CRITICAL.
+- table: voice_xp_audit_log
+  status: ACTIVE
+  domain_owner: DISCORD
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-Discord
+  runtime_writers:
+  - BraFurries-Discord
+  identity_merge_writer: []
+  current_ddl_owner: BRA_FURRIES_DISCORD_RUNTIME
+  id_semantics:
+  - server_guild_id=DISCORD_GUILD_SNOWFLAKE_WITHOUT_FK
+  - discord_user_id=DISCORD_USER_SNOWFLAKE_WITHOUT_FK
+  - voice_channel_id=DISCORD_CHANNEL_SNOWFLAKE_WITHOUT_FK
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-Discord
+  current_ddl_paths:
+  - BraFurries-Discord/cogs/xp.py::XpCog initialization
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: ''
+- table: voice_xp_daily_metrics
+  status: ACTIVE
+  domain_owner: DISCORD
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-Discord
+  runtime_writers:
+  - BraFurries-Discord
+  identity_merge_writer: []
+  current_ddl_owner: BRA_FURRIES_DISCORD_RUNTIME
+  id_semantics:
+  - server_guild_id=DISCORD_GUILD_SNOWFLAKE_WITHOUT_FK
+  - voice_channel_id=DISCORD_CHANNEL_SNOWFLAKE_WITHOUT_FK
+  logical_key: UNKNOWN
+  physical_keys: TODO_CANONICAL_EXTRACTION
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-Discord
+  current_ddl_paths:
+  - BraFurries-Discord/cogs/xp.py::XpCog initialization
+  evidence:
+  - schema-audit-v2
+  - coddy-schema-current.sql-external-evidence
+  notes: ''

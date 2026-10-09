@@ -1,0 +1,84 @@
+manifest_version: 1
+last_reviewed: "2026-09-24"
+
+schema_authorities:
+  BraFurries-Database:
+    description: Future exclusive authority for shared schema evolution.
+
+systems:
+  BraFurries-Discord:
+    description: Discord runtime and current owner of legacy runtime DDL.
+  BraFurries-API:
+    description: HTTP/API runtime and canonical manager of non-destructive identity links.
+  BraFurries-Discord-Migration-Runner:
+    description: Legacy scripts/run_migrations.py mechanism; not a future authority.
+
+domain_owners:
+  DISCORD:
+    description: Functionality is operationally owned by BraFurries-Discord.
+  API:
+    description: Functionality is operationally owned by BraFurries-API.
+  SHARED:
+    description: Both systems have a normal runtime contract with the table.
+  INFRASTRUCTURE:
+    description: Table supports database or migration infrastructure.
+  UNKNOWN:
+    description: Phase 1 evidence is insufficient for a definitive domain owner.
+
+statuses:
+  ACTIVE:
+    deletion_allowed: false
+    description: Current functional or infrastructure use is identified.
+  FUTURE_RESERVED:
+    deletion_allowed: false
+    description: Reserved for a future capability and not currently consumed.
+  LEGACY_UNUSED:
+    deletion_allowed: false
+    description: Historical object with no current use identified.
+  LEGACY_ABANDONED:
+    deletion_allowed: false
+    description: Belonged to an unfinished or abandoned implementation.
+  LEGACY_UNIMPLEMENTED:
+    deletion_allowed: false
+    description: Designed or modeled but never completed as a functional flow.
+  LEGACY_OBSOLETE_DESIGN:
+    deletion_allowed: false
+    description: Historical design that must be redesigned before any future use.
+  LEGACY_MIGRATION_HISTORY:
+    deletion_allowed: false
+    description: Preserved evidence of a superseded migration mechanism.
+  UNKNOWN:
+    deletion_allowed: false
+    description: Lifecycle status has not been confirmed.
+
+current_ddl_owners:
+  BRA_FURRIES_DISCORD_RUNTIME:
+    description: Discord currently creates, alters, repairs, drops, or renames schema at runtime.
+  BRA_FURRIES_DISCORD_SQL_MIGRATION:
+    description: Discord SQL migration is the identified current DDL source.
+  BRA_FURRIES_DISCORD_LEGACY_RUNNER:
+    description: Discord's migration runner creates or maintains the object.
+  MANUAL_OR_UNKNOWN:
+    description: No current executable DDL owner was identified in API or Discord.
+  BRA_FURRIES_DATABASE_FLYWAY:
+    description: Versioned structural definition maintained by BraFurries-Database and applied outside application startup.
+
+merge_policy_values:
+  NOT_APPLICABLE:
+    description: Internal-user consolidation is not authorized; identity links preserve independent Users and records.
+  TODO_CANONICAL_API_POLICY:
+    description: Legacy value retained for manifest compatibility; new entries must not use it.
+  REVOKE_ALL_SESSIONS_CANDIDATE:
+    description: Legacy value retained for manifest compatibility; identity links never share or revoke sessions.
+  PRESERVE_LEGACY_HISTORY:
+    description: Migration history is retained as evidence and is not merged.
+
+unknown_markers:
+  UNKNOWN:
+    description: No supported conclusion can be made from current evidence.
+  TODO_CANONICAL_EXTRACTION:
+    description: Must be populated from the later sanitized canonical schema, not guessed in Phase 1.
+  TODO_FIELD_CLASSIFICATION:
+    description: Field-level identifier semantics require targeted validation.
+  TODO_HUMAN:
+    description: Requires an explicit owner decision.

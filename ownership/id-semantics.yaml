@@ -1,0 +1,224 @@
+manifest_version: 1
+last_reviewed: "2026-09-30"
+normalization_status: IDENTITY_LINK_MODEL_ADOPTED
+
+semantic_types:
+  INTERNAL_USER_ID:
+    storage_family: INTEGER
+    canonical_source: users.id
+    description: Internal BraFurries user identity.
+  IDENTITY_LINK_ID:
+    storage_family: BIGINT
+    canonical_source: user_identity_links.id
+    description: Internal audit identity of a non-destructive User link.
+  INTERNAL_USER_BAN_ID:
+    storage_family: INTEGER
+    canonical_source: user_bans.id
+    description: Internal identity of an administrative ban action.
+  USER_DISCORD_LINK_ID:
+    storage_family: INTEGER
+    canonical_source: user_discord.id
+    description: Internal identity of the user-to-Discord link row.
+  DISCORD_USER_SNOWFLAKE:
+    storage_family: BIGINT
+    canonical_source: Discord
+    description: External Discord user identifier.
+  COMMUNITY_DISCORD_LINK_ID:
+    storage_family: INTEGER
+    canonical_source: community_discord.id
+    description: Internal identity of the community-to-Discord link row.
+  DISCORD_GUILD_SNOWFLAKE:
+    storage_family: BIGINT
+    canonical_source: Discord
+    description: External Discord guild identifier.
+  DISCORD_CHANNEL_SNOWFLAKE:
+    storage_family: BIGINT
+    canonical_source: Discord
+    description: External Discord channel identifier.
+  DISCORD_MESSAGE_SNOWFLAKE:
+    storage_family: BIGINT
+    canonical_source: Discord
+    description: External Discord message identifier.
+  DISCORD_ROLE_SNOWFLAKE:
+    storage_family: BIGINT
+    canonical_source: Discord
+    description: External Discord role identifier.
+  INTERNAL_COMMUNITY_ID:
+    storage_family: INTEGER
+    canonical_source: communities.id
+    description: Internal BraFurries community identity.
+  INTERNAL_COMMUNITY_NETWORK_SYNC_RUN_ID:
+    storage_family: BIGINT
+    canonical_source: community_network_sync_runs.id
+    description: Internal audit identity of one Community external-network synchronization run.
+  EXTERNAL_NETWORK_ID:
+    storage_family: BIGINT
+    canonical_source: network_type
+    description: External network identifier whose provider-specific meaning is selected by network_type.
+  POLYMORPHIC_INTERNAL_TARGET:
+    storage_family: INTEGER
+    canonical_source: target_type
+    description: Meaning depends on a discriminator; no single foreign key can represent it.
+
+confirmed_fields:
+  users.id:
+    semantic_type: INTERNAL_USER_ID
+    foreign_key: PRIMARY_KEY
+    storage: SIGNED_INT_11
+  user_identity_links.id:
+    semantic_type: IDENTITY_LINK_ID
+    foreign_key: PRIMARY_KEY
+  user_identity_links.user_a_id:
+    semantic_type: INTERNAL_USER_ID
+    foreign_key: users.id
+    note: Equivalent endpoint A of an undirected identity edge; not a primary or root User.
+  user_identity_links.user_b_id:
+    semantic_type: INTERNAL_USER_ID
+    foreign_key: users.id
+    note: Equivalent endpoint B of an undirected identity edge; not a secondary or linked User.
+  user_identity_links.linked_by_user_id:
+    semantic_type: INTERNAL_USER_ID
+    foreign_key: users.id
+    note: Nullable for explicitly imported historical/system links.
+  user_identity_links.revoked_by_user_id:
+    semantic_type: INTERNAL_USER_ID
+    foreign_key: users.id
+  user_bans.revoked_by:
+    semantic_type: INTERNAL_USER_ID
+    foreign_key: users.id
+    note: Nullable actor for a real Discord/Coddy unban; never a Discord snowflake or user_discord.id.
+  user_ban_discord_effects.ban_id:
+    semantic_type: INTERNAL_USER_BAN_ID
+    foreign_key: user_bans.id
+  user_ban_discord_effects.identity_user_id:
+    semantic_type: INTERNAL_USER_ID
+    foreign_key: users.id
+  user_ban_discord_effects.discord_user_id:
+    semantic_type: DISCORD_USER_SNOWFLAKE
+    foreign_key: NONE
+  user_discord.id:
+    semantic_type: USER_DISCORD_LINK_ID
+    foreign_key: PRIMARY_KEY
+  user_discord.user_id:
+    semantic_type: INTERNAL_USER_ID
+    foreign_key: users.id
+  user_discord.discord_user_id:
+    semantic_type: DISCORD_USER_SNOWFLAKE
+    foreign_key: NONE
+  community_discord.id:
+    semantic_type: COMMUNITY_DISCORD_LINK_ID
+    foreign_key: PRIMARY_KEY
+  community_discord.community_id:
+    semantic_type: INTERNAL_COMMUNITY_ID
+    foreign_key: communities.id
+  community_discord.guild_id:
+    semantic_type: DISCORD_GUILD_SNOWFLAKE
+    foreign_key: NONE
+  user_temp_roles.disc_user_id:
+    semantic_type: USER_DISCORD_LINK_ID
+    foreign_key: user_discord.id
+  user_temp_roles.disc_community_id:
+    semantic_type: COMMUNITY_DISCORD_LINK_ID
+    foreign_key: community_discord.id
+  user_temp_roles.role_id:
+    semantic_type: DISCORD_ROLE_SNOWFLAKE
+    foreign_key: NONE
+  form_submissions.user_id:
+    semantic_type: DISCORD_USER_SNOWFLAKE
+    foreign_key: NONE
+  form_submissions.guild_id:
+    semantic_type: DISCORD_GUILD_SNOWFLAKE
+    foreign_key: NONE
+  form_submissions.channel_id:
+    semantic_type: DISCORD_CHANNEL_SNOWFLAKE
+    foreign_key: NONE
+  form_submissions.message_id:
+    semantic_type: DISCORD_MESSAGE_SNOWFLAKE
+    foreign_key: NONE
+  portaria_account_release.user_id:
+    semantic_type: DISCORD_USER_SNOWFLAKE
+    foreign_key: NONE
+  portaria_account_release.released_by:
+    semantic_type: DISCORD_USER_SNOWFLAKE
+    foreign_key: NONE
+  portaria_account_release.server_guild_id:
+    semantic_type: DISCORD_GUILD_SNOWFLAKE
+    foreign_key: NONE
+  voice_sessions.server_guild_id:
+    semantic_type: DISCORD_GUILD_SNOWFLAKE
+    foreign_key: NONE
+  voice_sessions.discord_user_id:
+    semantic_type: DISCORD_USER_SNOWFLAKE
+    foreign_key: NONE
+  voice_sessions.voice_channel_id:
+    semantic_type: DISCORD_CHANNEL_SNOWFLAKE
+    foreign_key: NONE
+  voice_xp_audit_log.server_guild_id:
+    semantic_type: DISCORD_GUILD_SNOWFLAKE
+    foreign_key: NONE
+  voice_xp_audit_log.discord_user_id:
+    semantic_type: DISCORD_USER_SNOWFLAKE
+    foreign_key: NONE
+  voice_xp_audit_log.voice_channel_id:
+    semantic_type: DISCORD_CHANNEL_SNOWFLAKE
+    foreign_key: NONE
+  voice_xp_daily_metrics.server_guild_id:
+    semantic_type: DISCORD_GUILD_SNOWFLAKE
+    foreign_key: NONE
+  voice_xp_daily_metrics.voice_channel_id:
+    semantic_type: DISCORD_CHANNEL_SNOWFLAKE
+    foreign_key: NONE
+  community_boss_attack_cooldown.guild_id:
+    semantic_type: DISCORD_GUILD_SNOWFLAKE
+    foreign_key: NONE
+  community_boss_attack_cooldown.user_id:
+    semantic_type: INTERNAL_USER_ID
+    foreign_key: NONE
+    note: JPA models a users relationship, but the audited schema has no foreign key.
+  community_boss_contribution.guild_id:
+    semantic_type: DISCORD_GUILD_SNOWFLAKE
+    foreign_key: NONE
+  community_boss_contribution.user_id:
+    semantic_type: INTERNAL_USER_ID
+    foreign_key: NONE
+    note: JPA models a users relationship, but the audited schema has no foreign key.
+  partners.representative_user_id:
+    semantic_type: INTERNAL_USER_ID
+    foreign_key: NONE
+    note: JPA models the relation; identity links never rewrite this ownership field.
+  partner_links.target_id:
+    semantic_type: POLYMORPHIC_INTERNAL_TARGET
+    foreign_key: NONE
+    discriminator: partner_links.target_type
+    note: Identity links never rewrite polymorphic targets; any future transfer requires a separate explicit feature.
+  community_network_sync_runs.id:
+    semantic_type: INTERNAL_COMMUNITY_NETWORK_SYNC_RUN_ID
+    foreign_key: PRIMARY_KEY
+  community_network_sync_runs.community_id:
+    semantic_type: INTERNAL_COMMUNITY_ID
+    foreign_key: communities.id
+  community_network_sync_runs.external_network_id:
+    semantic_type: EXTERNAL_NETWORK_ID
+    foreign_key: NONE
+    discriminator: community_network_sync_runs.network_type
+    note: No single foreign key applies because network_type selects the external provider.
+
+field_name_warnings:
+  user_id:
+    warning: May be INTERNAL_USER_ID or a direct Discord snowflake. Validate table-specific evidence.
+  guild_id:
+    warning: May be a Discord snowflake, an internal link ID, or another domain identifier.
+  server_guild_id:
+    warning: Commonly a Discord guild snowflake, but do not infer without table evidence.
+  discord_user_id:
+    warning: Stores a Discord snowflake, not user_discord.id.
+  disc_user_id:
+    warning: In user_temp_roles this stores user_discord.id, not a Discord snowflake.
+
+known_reference_without_fk_categories:
+  - direct Discord user, guild, channel, message, and role snowflakes
+  - internal user references in community boss contribution/cooldown
+  - partners.representative_user_id
+  - partner_links polymorphic target_id
+
+phase_1_rule: Do not normalize, rewrite, or infer missing identifier mappings in this phase.

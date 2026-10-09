@@ -1,0 +1,54 @@
+services:
+  mariadb:
+    image: mariadb:10.6.28
+    restart: "no"
+    environment:
+      MARIADB_ROOT_PASSWORD: brf_disposable_root_only
+      MARIADB_DATABASE: brf_flyway_smoke_test
+      MARIADB_USER: brf_flyway_smoke
+      MARIADB_PASSWORD: brf_disposable_smoke_only
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 2s
+      timeout: 5s
+      retries: 60
+      start_period: 10s
+    tmpfs:
+      - /var/lib/mysql
+    networks:
+      - disposable
+
+  flyway:
+    image: flyway/flyway:13.4.0
+    restart: "no"
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    environment:
+      FLYWAY_URL: jdbc:mariadb://mariadb:3306/brf_flyway_smoke_test
+      FLYWAY_USER: brf_flyway_smoke
+      FLYWAY_PASSWORD: brf_disposable_smoke_only
+      FLYWAY_DRIVER: org.mariadb.jdbc.Driver
+      FLYWAY_COLOR: never
+    volumes:
+      - type: bind
+        source: ../flyway/conf/flyway-smoke.conf
+        target: /flyway/conf/flyway.conf
+        read_only: true
+      - type: bind
+        source: ./fixtures/flyway-smoke
+        target: /flyway/sql
+        read_only: true
+      - type: bind
+        source: ../flyway/sql/versioned
+        target: /flyway/official
+        read_only: true
+    networks:
+      - disposable
+
+networks:
+  disposable:
+    internal: true
