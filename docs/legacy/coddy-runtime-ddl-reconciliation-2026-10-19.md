@@ -1,5 +1,16 @@
 # Runtime DDL reconciliation — Coddy (2026-10-19)
 
+> **Atualização após os merges — 19/10/2026:** este inventário abaixo
+> preserva o estado **histórico** do Coddy em `45f6397`; suas contagens,
+> funções e observações sobre PR #23 não descrevem mais a `main`.
+> Na `main` `e701680`, as PRs #23–#32 já foram integradas em etapas,
+> com os quatro últimos deploys verificados; a varredura textual de 79 arquivos
+> Python de runtime não encontrou comandos DDL explícitos. O limite de SQL
+> dinâmico/indireto permanece e o baseline Flyway não foi implantado.
+> Consulte [a reconciliação de 101 tabelas vs 93 entradas do manifesto](2026-10-19-production-schema-reconciliation.md)
+> antes de propor baseline.
+>
+
 > **Read-only code audit, not a production database audit.** This report supplements
 > `docs/legacy/discord-runtime-ddl.md` and the retirement tracking issue
 > [BraFurries-Discord #3](https://github.com/BraFurries/BraFurries-Discord/issues/3).
