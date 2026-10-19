@@ -80,6 +80,38 @@ not complete.**
 - No runtime/embedded DDL is to be moved to API. New schema work stays in this
   Database repository; Coddy preflights and executes operational DML only.
 
+## Production DDL snapshot cross-check (2026-10-19)
+
+The project owner supplied a **production MariaDB 10.6 schema-only dump**
+(exported with row/data export disabled). The complete dump is **not committed**
+to this public repository. This proves the definitions reported by the export
+at capture time, not table contents, Flyway execution history, or runtime state
+at the eventual deployment time.
+
+- The `coddy` schema export contains 101 `CREATE TABLE` definitions.
+- All 10 expected columns were found in each of `voice_sessions`,
+  `voice_xp_audit_log`, and `voice_xp_daily_metrics` (30 columns total).
+- The compound primary key `(server_guild_id, discord_user_id)` is present
+  on `voice_sessions`.
+- The unique key `(metric_day, server_guild_id, modality, voice_channel_id)`
+  is present on `voice_xp_daily_metrics`.
+- The read-only `information_schema` preflight proposed in Coddy PR #23
+  therefore matches **this exported production schema**.
+- The dump contains `schema_migrations` but no
+  `flyway_schema_history`; version-control presence of
+  `V20261004_001` does not establish actual Flyway deployment.
+- The dump contains no `INSERT` statements; it cannot verify table row counts,
+  duplicates or historical consistency. In particular, the nullable
+  `voice_channel_id` in the daily-metrics unique index permits duplicate
+  logical grouping keys with NULL in MariaDB; investigate separately before
+  changing semantics or constraints.
+
+**Result:** the production-structure prerequisite for Coddy PR #23 is satisfied
+at capture time. No new schema migration is needed **for that four-DDL-site
+removal** based on the snapshot. Keep the formal Flyway adoption, data-level
+validation, and any drift remediation separate; still check deployment
+readiness and obtain explicit merge/deploy approval.
+
 ## Controlled rollout: voice-XP first
 
 1. Gather read-only `information_schema.COLUMNS` and `STATISTICS` evidence
