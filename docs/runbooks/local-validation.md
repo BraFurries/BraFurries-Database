@@ -107,11 +107,11 @@ Only environment-variable names are reported on rejection; values are never read
 
 ## CI gates
 
-`.github/workflows/schema-validation.yml` runs on pull requests and pushes to `main` using GitHub-hosted Ubuntu runners with read-only repository permission and no environment or secrets. It checks:
+`.github/workflows/schema-validation.yml` currently runs on pull requests (not pushes to `main`) using GitHub-hosted Ubuntu runners with read-only repository permission and no environment or secrets. It checks:
 
 - YAML parsing with duplicate-key rejection;
 - local Markdown link targets;
-- the 78-table ownership manifest and registered values;
+- the currently 93-entry ownership manifest and registered values; the 2026-10-19 production export enumerates 101 tables and the unresolved 13/5 name divergence is documented in [the reconciliation report](../legacy/2026-10-19-production-schema-reconciliation.md);
 - migration paths, naming, uniqueness, reserved draft versions, and approved official SQL;
 - rendered Docker Compose validity;
 - the complete disposable Flyway/MariaDB smoke test.
