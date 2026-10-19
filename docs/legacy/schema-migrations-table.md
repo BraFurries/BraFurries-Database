@@ -5,7 +5,7 @@
 - Status: `LEGACY_MIGRATION_HISTORY`
 - Domain owner: infrastructure/legacy Discord runner
 - Future schema authority: BraFurries-Database
-- Current reader/writer: `BraFurries-Discord/scripts/run_migrations.py`
+- Historical reader/writer: legacy Discord migration runner. The current public `BraFurries-Discord` tree does **not** contain `scripts/run_migrations.py`. External/old host invocation remains unverified and must be checked operationally.
 
 ## Purpose
 
