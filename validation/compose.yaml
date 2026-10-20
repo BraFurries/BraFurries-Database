@@ -43,6 +43,10 @@ services:
         target: /flyway/sql
         read_only: true
       - type: bind
+        source: ../flyway/sql/baseline
+        target: /flyway/baseline
+        read_only: true
+      - type: bind
         source: ../flyway/sql/versioned
         target: /flyway/official
         read_only: true
