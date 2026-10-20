@@ -7,7 +7,7 @@
 > com os quatro últimos deploys verificados; a varredura textual de 79 arquivos
 > Python de runtime não encontrou comandos DDL explícitos. O limite de SQL
 > dinâmico/indireto permanece e o baseline Flyway não foi implantado.
-> Consulte [a reconciliação de 101 tabelas vs 93 entradas do manifesto](2026-10-19-production-schema-reconciliation.md)
+> Consulte [a reconciliação corrigida de 107 tabelas vs 93 entradas do manifesto](2026-10-19-production-schema-reconciliation.md)
 > antes de propor baseline.
 >
 
