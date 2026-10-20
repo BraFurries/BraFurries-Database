@@ -38,6 +38,95 @@ Adopt the already-existing production schema into Flyway history without recreat
 - reviewer and operator approvals;
 - expected Flyway baseline version and description.
 
+## Preparing a future read-only fingerprint review (not a production procedure)
+
+This section prepares **evidence collection only**. It does not grant permission
+to connect to the production VM or MariaDB, and the repository intentionally has
+no live-database capture command, credential, host or production workflow.
+
+### Reference capture from a disposable baseline
+
+An authorized developer can generate the **expected** metadata using the
+existing pinned disposable harness. Choose a fresh, private path *outside*
+the repository and ensure the file does not already exist:
+
+```bash
+python validation/scripts/physical_schema_fingerprint.py capture-disposable /private/expected-physical-schema.json
+```
+
+This mode is hard-coded to the isolated Compose test database. It checks the
+local Docker context, starts the 107-table baseline in a disposable database,
+excludes `flyway_schema_history` from structural comparison, and tears down
+its containers and volumes. It is **not** a way to capture production.
+
+### Live observed capture — separately authorized and privately executed
+
+Only after a **separate explicit read-only authorization**, the DBA/operator
+must independently verify the intended database target and use a restricted
+account with sufficient *metadata visibility* for all 107 application tables.
+Permissions and completeness must be established before relying on the result;
+an incomplete account can produce a misleading partial inventory. Do not
+use API/Coddy credentials, expose database connectivity to GitHub runners,
+or connect this repository's disposable Compose harness to the live database.
+
+The exact five SELECT-only queries and one environment query are maintained
+in `validation/scripts/physical_schema_fingerprint.py` under `QUERIES` and
+`ENVIRONMENT_QUERY`. All five read `information_schema` with the selected
+`DATABASE()` scope. **Do not execute the Python capture-disposable adapter
+against production or modify it to accept live connection details.**
+
+The independently authorized operator may export the returned JSON objects
+from each query, in their existing array of records, to a private JSON file
+using the following contract:
+
+```json
+{
+  "format": "brafurries-mariadb-physical-schema-v1",
+  "sections": {
+    "tables": [],
+    "columns": [],
+    "indexes": [],
+    "foreign_keys": [],
+    "checks": []
+  },
+  "environment": {}
+}
+```
+
+The arrays shown are **placeholders**, not valid evidence. Each section must
+contain **all records** returned by its corresponding query (an empty
+`foreign_keys` or `checks` array is structurally legal, but unexpected for
+this schema). The `environment` object is the single JSON result of the
+environment query. These results contain metadata (possibly sensitive object
+names and check expressions), **not** application rows; nevertheless keep
+the observed snapshot, command history, review package and database identity
+outside Git, PRs, chats, public CI artifacts and shared logs.
+
+### Offline comparison and acceptance criteria
+
+Compare the private expected and observed files on a trusted workstation,
+without any database connection:
+
+```bash
+python validation/scripts/physical_schema_fingerprint.py compare /private/expected-physical-schema.json /private/observed-physical-schema.json
+```
+
+Exit code **0** means the represented normalized metadata matches; **1**
+means physical drift, and **2** means invalid/incomplete input. The comparator
+prints hashes and object/field names of up to 60 differences, not data rows.
+A zero exit code is necessary but **not sufficient** for production adoption:
+the capture must be demonstrably complete, with expected counts (**107
+tables, 946 columns, 127 foreign keys, 52 CHECKs**) and a separate review of
+MariaDB version, default schema collation, charset, identifier visibility,
+`schema_migrations` history and `flyway_schema_history` presence/absence.
+The environment context is intentionally **excluded** from the structural hash.
+
+No automatic normalization of genuine drift, no Flyway `repair`, no
+`baselineOnMigrate`, and no production `baseline` operation may follow
+without fingerprint approval, backup/restore evidence, legacy-runner freeze,
+operator readiness, and separate written authorization. Record only sanitized
+results and checksums in a future release evidence document.
+
 ## Version alignment and verified candidate
 
 The current proposal is `B20261020_001__adopt_production_schema.sql`:
