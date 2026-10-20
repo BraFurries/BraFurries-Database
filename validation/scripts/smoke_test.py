@@ -3197,8 +3197,10 @@ def run_smoke() -> None:
 
 
 def main() -> int:
+    preflight_accepted = False
     try:
         safety_preflight()
+        preflight_accepted = True
         run_smoke()
     except SmokeFailure as exc:
         print(f"Smoke test failed: {exc}", file=sys.stderr)
@@ -3207,12 +3209,13 @@ def main() -> int:
         print("Flyway/MariaDB disposable smoke test passed.")
         return_code = 0
     finally:
-        try:
-            down()
-            assert_no_resources_remain()
-        except SmokeFailure as cleanup_error:
-            print(f"Cleanup verification failed: {cleanup_error}", file=sys.stderr)
-            return_code = 1
+        if preflight_accepted:
+            try:
+                down()
+                assert_no_resources_remain()
+            except SmokeFailure as cleanup_error:
+                print(f"Cleanup verification failed: {cleanup_error}", file=sys.stderr)
+                return_code = 1
     return return_code
 
 
