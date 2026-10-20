@@ -6,7 +6,7 @@ Conceptual only. This is not authorization to access production and intentionall
 
 ## Objective
 
-Adopt the already-existing production schema into Flyway history without recreating or changing the 78 application tables.
+Adopt the already-existing production schema into Flyway history without recreating or changing the 107 exported application tables.
 
 ## Required approvals
 
@@ -19,7 +19,7 @@ Adopt the already-existing production schema into Flyway history without recreat
 
 - Flyway implementation phase is separately approved.
 - The Flyway version and MariaDB driver are pinned and validated against MariaDB 10.6.
-- A sanitized canonical representation exists outside production.
+- The candidate sanitized canonical baseline exists at `flyway/sql/baseline/B20261020_001__adopt_production_schema.sql` with adoption version `20261020.001`. This is a proposed version for eventual approval, NOT authorization to baseline production.
 - The structural fingerprint matches the current production database.
 - No unresolved drift exists.
 - Runtime/manual DDL is quiesced for the adoption window.
