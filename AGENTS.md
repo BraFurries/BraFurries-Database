@@ -12,18 +12,14 @@ This repository is the schema authority for the MariaDB database shared by:
 
 Domain ownership and schema authority are different. A table may belong to Discord, API, or both while all schema changes are versioned here.
 
-## Planned public-repository migration (not yet completed)
+## Public-repository and data-boundary status
 
-This repository is the **private legacy source** until the owner explicitly approves a cutover to a new, independently initialized public Database repository.
-
-- Keep this repository and **its entire existing Git history private**, including old branches, commits, pull requests, build logs, and operational evidence. Deleting sensitive lines from the current branch does not sanitize the historical objects.
-- For the new public repository, use **only a reviewed and sanitized source-tree export** with a fresh initial commit. Do not fork, mirror, clone with `.git`, transfer existing history, or copy old refs, tags, Actions logs/artifacts, or review metadata into the public repository.
-- Remove actual person-to-Discord identity mappings, private e-mail addresses, production identifiers and run evidence, credentials, keys, dumps, and other non-public operational details before exporting. Use demonstrably synthetic examples when needed.
-- Preserve versioned migration contents and ordering, ownership metadata, tenant-aware schema contracts, and the fact that transitional migrations may already have been applied in production. Never modify applied migrations for publication.
-- Run a secret/history scan on the **new repository**, inspect its complete initial tree, and validate its Flyway/MariaDB schema workflow using disposable infrastructure before requesting publication.
-- Do not change repository visibility, disable/change production protections, rotate secrets, deploy, apply migrations, archive, rename, delete, or redirect this repository as a side effect of documentation cleanup.
-- The future public repository becomes schema authority **only after an explicitly approved, verified cutover**. Until then, treat the current Database repository and its versioned SQL as authoritative.
-- After cutover, keep the old repository private as a read-only historical archive; formally archiving it requires separate owner approval. Do not delete its branches/history or discard audit evidence.
+This repository is the active public Database schema-governance repository.
+Older private infrastructure/history is not a source of executable migrations.
+Never copy historical private refs, unredacted production exports, database
+contents, personal identifiers, credentials, operational secrets or backups
+into this repository or CI artifacts. Keep adoption/versioned evidence as
+reviewable, sanitized SQL and documentation.
 
 ## Current phase restriction
 
