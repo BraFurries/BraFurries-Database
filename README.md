@@ -20,14 +20,14 @@ It currently defines:
 - a pinned Flyway Open Source CLI and disposable MariaDB 10.6 validation harness;
 - ownership, migration-naming, YAML, and Markdown validation gates.
 
-It does **not** yet contain an official baseline. Versioned history starts with the structural adoption of `user_identity_links`.
+It does **not** yet contain an official baseline. The [corrected production-export reconciliation](docs/legacy/2026-10-19-production-schema-reconciliation.md) counts **107 tables** in the latest owner-provided structure-only export and **93 manifest entries**: every cataloged table appears in that export, while **14 additional production-export tables** lack ownership entries. An earlier 101-table export omitted six definitions; this does not prove those tables were absent from the live database. Versioned history starts with the structural adoption of `user_identity_links`.
 
 ## Authority
 
 `BraFurries-Database` is the future authoritative source for all shared schema evolution.
 
 - `BraFurries-API` remains configured with `spring.jpa.hibernate.ddl-auto=none` and must not mutate schema automatically.
-- `BraFurries-Discord` still contains legacy runtime DDL. Existing paths will be retired incrementally; no new runtime DDL may be introduced.
+- `BraFurries-Discord` retired its known literal runtime schema-changing SQL through its October 2026 PRs (#23–#32). Static inspection is not proof against all dynamic/indirect SQL paths; no new runtime DDL may be introduced.
 - Flyway is the approved future migration engine, executed outside API and Discord startup.
 - Production baseline adoption remains a manual operation through a restricted host-side wrapper and dedicated migration credential once that operational path is implemented.
 - Before that adoption, any exceptional manual production DDL must match reviewed versioned SQL exactly and be recorded under `docs/releases/`; it does not create or imply Flyway history.
