@@ -181,6 +181,55 @@ own isolated application/service tests, including forged community identifiers,
 unknown callers and concurrent requests. CI does not start either application.
 No production data, URLs, credentials or database connections are used.
 
+## Physical schema fingerprint — MariaDB 10.6 (offline comparison)
+
+The canonical baseline matches the private structural export text. To detect
+actual metadata drift, the new **read-only** fingerprint queries collect:
+
+- each application table's engine, collation and row format;
+- each column's ordinal, physical type, NULL/default, generated expression,
+  character set and collation;
+- indexes and ordered index columns;
+- foreign keys (including composite-key columns and update/delete rules);
+- CHECK clauses.
+
+The fingerprint excludes `flyway_schema_history` and all **table data**. MariaDB
+version and database/server default collation are included as **context**, but
+excluded from the schema hash: environment differences must be independently
+reviewed before adopting Flyway.
+
+```text
+python validation/scripts/physical_fingerprint_smoke_test.py
+python validation/scripts/physical_schema_fingerprint.py compare expected.json observed.json
+```
+
+The smoke test performs an initial capture, repeats it (expect identical digest),
+adds an extra nullable column to an **isolated disposable** table to prove drift
+is detected, then drops only that synthetic probe column and verifies full
+equivalence. Safety preflight enforces pinned MariaDB, fixed Compose
+network/credentials, no host ports, and cleanup. It never touches production.
+
+### Before any future read-only production capture
+
+There is **no production connection command or credential** in this repository.
+The `capture_disposable` adapter is deliberately bound to the isolated Compose
+service; do not repurpose it to production.
+
+A separate approved operations process must capture identical
+`information_schema` metadata from the intended real database through a
+read-only account and explicitly selected target, store it privately, and
+compare its JSON to an approved canonical capture from the disposable baseline.
+Do not commit raw metadata from production, credentials, table data or
+production-specific hostnames to this public repo. A successful comparison
+does **not** constitute approval to run `baseline`.
+
+**Schema-level caveat:** physical metadata checks do not verify stored data,
+sequences' next AUTO_INCREMENT values, grants, routines, triggers or seed/config
+rows. Changes to MariaDB version or environment collation require separate review.
+The fingerprint is meaningful only when the same metadata selection and
+normalization rules are used for both snapshots. CI currently verifies these
+against the disposable environment, **not a live production snapshot**.
+
 ## Still prohibited
 
 - production VM or database access;
