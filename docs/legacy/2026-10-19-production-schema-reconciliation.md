@@ -1,5 +1,7 @@
 # Reconciliation of production structural exports and schema ownership catalog
 
+> **Historical snapshot:** this report describes the pre-reconciliation state when the manifest had 93 entries. The 14 missing entries are now proposed in the 2026-10-20 catalog PR; use [the current inventory runbook](../runbooks/production-inventory-check.md) for the updated 107/107 table-name comparison. No baseline or physical schema parity is implied.
+
 > **Source correction — no production operation.** This document supersedes the
 > preliminary 101-vs-93 analysis in the initial draft of PR #5. It compares
 > two distinct user-provided no-data SQL exports and the current ownership
