@@ -39,6 +39,9 @@ jobs:
       - name: Validate migration policy and official history
         run: python validation/scripts/validate_migrations.py --allow-official
 
+      - name: Test offline schema inventory reconciler (synthetic fixtures)
+        run: python -m unittest discover -s validation/tests -p 'test_*.py' -v
+
       - name: Validate Docker Compose configuration
         run: >-
           docker compose
