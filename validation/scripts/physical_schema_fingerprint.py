@@ -171,12 +171,16 @@ def compare_files(expected: Path, observed: Path) -> int:
 
 def _disposable_rows(sql: str) -> list[dict[str, Any]]:
     # Safety is enforced by smoke_test.safety_preflight before this function.
-    from smoke_test import DATABASE_NAME, DATABASE_PASSWORD, DATABASE_USER, compose
-    cmd = compose(
-        "exec", "--no-TTY", "mariadb", "mariadb",
+    from smoke_test import (
+        COMPOSE_COMMAND, DATABASE_NAME, DATABASE_PASSWORD, DATABASE_USER,
+        run_command,
+    )
+    cmd = run_command(
+        [*COMPOSE_COMMAND, "exec", "--no-TTY", "mariadb", "mariadb",
         "--host=127.0.0.1", f"--user={DATABASE_USER}",
         f"--password={DATABASE_PASSWORD}", f"--database={DATABASE_NAME}",
-        "--batch", "--raw", "--skip-column-names", "--execute=" + sql,
+        "--batch", "--raw", "--skip-column-names", "--execute=" + sql],
+        show_output=False,
     )
     records = []
     for row in cmd.stdout.splitlines():
