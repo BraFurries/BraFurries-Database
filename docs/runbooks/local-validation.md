@@ -118,6 +118,40 @@ Only environment-variable names are reported on rejection; values are never read
 
 CI does not use SSH, a self-hosted runner, a production environment, or any deploy step.
 
+## Reproducible 107-table baseline (disposable only)
+
+The candidate `B20261020_001__adopt_production_schema.sql` is mounted
+**read-only** at `/flyway/baseline` in the existing pinned/isolated Compose
+environment. Its validation does **not** apply the B file to production.
+
+```text
+python validation/scripts/baseline_smoke_test.py
+```
+
+The baseline smoke starts a clean MariaDB 10.6 and proves:
+
+- the latest B migration creates exactly the 107 catalog tables (plus Flyway metadata);
+- 946 columns, 127 FKs, 105 PK constraints, 52 CHECK constraints, generated columns;
+- `validate`, idempotence, and legacy `schema_migrations` structure;
+- after intentionally clearing **only disposable Flyway history**, ordinary
+  `migrate` refuses a populated schema with `baselineOnMigrate=false`;
+- an **explicit** `baseline` with version `20261020.001` creates only
+  Flyway metadata without changing the 107 existing tables; followed by
+  `validate` and a no-op `migrate`.
+
+To verify full CREATE TABLE definitions against a private structure-only
+export without uploading or executing it:
+
+```text
+python validation/scripts/compare_baseline_ddl.py "/private/path/schema-only.sql"
+```
+
+The comparator checks full exported DDL, ignoring only table creation order,
+`IF NOT EXISTS` and transient `AUTO_INCREMENT=N` counters; outputs names
+and hashes, never rows. It does not replace the later live normalized
+`information_schema` fingerprint, reference data verification or release
+approval. Unit tests use only synthetic SQL.
+
 ## Still prohibited
 
 - production VM or database access;

@@ -50,6 +50,9 @@ jobs:
           --file validation/compose.yaml
           config --quiet
 
+      - name: Verify full baseline and explicit adoption in disposable MariaDB
+        run: python validation/scripts/baseline_smoke_test.py
+
       - name: Run disposable Flyway smoke test
         run: python validation/scripts/smoke_test.py
 

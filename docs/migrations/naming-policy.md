@@ -2,7 +2,7 @@
 
 ## Status
 
-The policy is active for naming validation. Phase 2 still forbids all official baseline, versioned, and repeatable SQL files.
+The naming policy applies to the official SQL history and the new 107-table baseline candidate. A baseline file is not approval to execute Flyway on production.
 
 ## Official locations
 
@@ -41,7 +41,7 @@ Their SQL is not imported, renamed, copied, or treated as official history.
 
 ## Baseline restriction
 
-This naming policy does not choose the production adoption version and does not authorize a baseline file. Baseline version, content, fingerprint, and adoption procedure remain decisions for the separately approved baseline phase.
+The 107-table candidate uses `B20261020_001__adopt_production_schema.sql` (version `20261020.001`), above the October 8 historical V scripts. A future production adoption must use the same approved baseline version via explicit `baseline` after a freshly verified physical fingerprint and a separately authorized maintenance window. `baselineOnMigrate` remains disabled.
 
 ## Smoke-fixture exception
 
