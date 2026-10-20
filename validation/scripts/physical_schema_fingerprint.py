@@ -17,7 +17,7 @@ FORMAT = "brafurries-mariadb-physical-schema-v1"
 SECTIONS = ("tables", "columns", "indexes", "foreign_keys", "checks")
 KEYS = {
     "tables": ("table",),
-    "columns": ("table", "position"),
+    "columns": ("table", "column"),
     "indexes": ("table", "index", "sequence"),
     "foreign_keys": ("table", "constraint", "position"),
     "checks": ("table", "constraint"),
