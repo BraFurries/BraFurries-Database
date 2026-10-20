@@ -53,6 +53,9 @@ jobs:
       - name: Run disposable Flyway smoke test
         run: python validation/scripts/smoke_test.py
 
+      - name: Verify full baseline and explicit adoption in disposable MariaDB
+        run: python validation/scripts/baseline_smoke_test.py
+
       - name: Enforce cleanup
         if: always()
         run: >-
