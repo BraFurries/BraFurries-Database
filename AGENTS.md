@@ -27,11 +27,11 @@ This repository is the **private legacy source** until the owner explicitly appr
 
 ## Current phase restriction
 
-The repository now contains reviewed, additive versioned migrations plus disposable local and GitHub-hosted CI validation. A production baseline is still not present.
+The repository contains reviewed additive versioned migrations and a sanitized 107-table baseline candidate with disposable MariaDB validation. No production Flyway baseline has been executed or authorized.
 
 Do not add without a separately approved task:
 
-- baseline SQL;
+- unrelated baseline SQL or a new baseline version without a separate architecture review;
 - repeatable migrations or unrelated versioned migrations;
 - migration binaries or dependencies outside the approved validation harness;
 - database execution scripts outside disposable validation;
@@ -139,7 +139,7 @@ Do not skip directly from runtime mutation to removal without proving the schema
 For documentation-only work:
 
 - validate Markdown links and YAML syntax;
-- verify the ownership manifest covers all 78 audited tables exactly once;
+- verify the ownership manifest covers all 107 exported tables exactly once;
 - verify no unapproved SQL, dumps, credentials, or secrets were added;
 - verify local drafts remain untracked and unpromoted;
 - verify API and Discord repositories are unchanged;
