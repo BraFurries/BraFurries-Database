@@ -150,19 +150,22 @@ def run() -> None:
 
 def main() -> int:
     result = 0
+    preflight_accepted = False
     try:
         safety_preflight()
+        preflight_accepted = True
         run()
     except SmokeFailure as error:
         print(f"Baseline smoke failed: {error}",file=sys.stderr)
         result=1
     finally:
-        down()
-        try:
-            assert_no_resources_remain()
-        except SmokeFailure as error:
-            print(f"Cleanup verification failed: {error}",file=sys.stderr)
-            result=1
+        if preflight_accepted:
+            down()
+            try:
+                assert_no_resources_remain()
+            except SmokeFailure as error:
+                print(f"Cleanup verification failed: {error}",file=sys.stderr)
+                result=1
     if result==0:
         print("PASS: canonical baseline and explicit adoption simulation on disposable MariaDB")
     return result
