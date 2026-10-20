@@ -1,141 +1,105 @@
-# Production schema vs ownership catalog — 19 October 2026
+# Reconciliation of production structural exports and schema ownership catalog
 
-> **Read-only reconciliation / no production operation.**
-> Evidence: no-data MariaDB 10.6 structural export supplied by the owner on
-> 2026-10-19, and the repository contents checked at the SHAs below.
-> Do not commit the original dump, extrapolate row counts, infer that Flyway
-> already ran, or treat this document as an executable baseline.
+> **Source correction — no production operation.** This document supersedes the
+> preliminary 101-vs-93 analysis in the initial draft of PR #5. It compares
+> two distinct user-provided no-data SQL exports and the current ownership
+> manifest. Do not infer that omitted tables were absent from the live database,
+> and do not commit either raw export to this public repository.
 
-## Revisions and observed scope
+## Audited references
 
-- Database `main`: `c6f5fac9471b9a608546bab52bbad116a1986f4a`.
-- Coddy `main`: `e701680e857479403492012d30ff658f36069c6b`
-  (PRs #29–#32 merged and all four subsequent production deployments succeeded).
-- Source snapshot: schema only (tables, columns, indexes and constraints, not
-  data rows, grants, live server status, or migration execution provenance).
-- Counted `CREATE TABLE IF NOT EXISTS` definitions in the export: **101**.
-- `ownership/tables.yaml` contains **93** entries
-  (`table_count_expected: 93`). Both figures were enumerated by name,
-  not inferred from the difference in counts.
+- Database `main` at the initial audit: `c6f5fac9471b9a608546bab52bbad116a1986f4a`.
+- Coddy `main`: `e701680e857479403492012d30ff658f36069c6b`.
+- Earlier SQL export supplied in the project: **101 unique `CREATE TABLE` definitions**.
+- **New** SQL export supplied by the owner (`Coddy(1).sql`):
+  **107 unique `CREATE TABLE IF NOT EXISTS` definitions** (no duplicate table names).
+- `ownership/tables.yaml`: **93** entries (`table_count_expected: 93`).
+- Comparison uses **exact table names**, not net totals or arbitrary page limits.
+  Both exports are structural evidence; no table contents, production connection,
+  executable baseline or Flyway history was audited here.
 
-### Missing from the governance manifest (in the export)
+## Correct result from the new 107-table export
 
-These 13 names appear in the 101-table export but not in the 93-table
-ownership manifest. They must be classified using their canonical migrations,
-actual API/Coddy consumers and tenant key semantics; their names alone do
-not establish which service owns their business rules.
+**All 93 cataloged tables appear in the current user-provided export.**
 
-| Family | Objects missing from manifest |
-| --- | --- |
-| Backups | `backup_guild_locks`, `backup_operation_steps`, `backup_restore_operations`, `backup_snapshot_operations` |
-| Temporary themes | `discord_theme_active_guilds`, `discord_theme_application_snapshots`, `discord_theme_applications`, `discord_theme_assets`, `discord_theme_guild_locks`, `discord_theme_operation_steps`, `discord_theme_operations`, `discord_themes` |
-| Portaria | `portaria_bypasses` |
+- Catalog entries missing from the new export: **0**.
+- Exported names not yet covered by the catalog: **14**.
+- Net difference: **107 − 93 = 14**, all on the manifest side.
 
-The Database repository already contains relevant versioned SQL, including
-`V20261006_007` (Portaria), `V20261007_002` and `V20261007_003`
-(backups) and `V20261007_004` (themes). **Presence in the repository is not
-proof Flyway executed any of these versions in production.**
+### Names present in the new export but absent from the manifest (14)
 
-### Catalog-only names (not in this export)
+| Area | Tables | Count |
+| --- | --- | ---: |
+| Backups | `backup_guild_locks`, `backup_operation_steps`, `backup_restore_operations`, `backup_snapshot_operations` | 4 |
+| Temporary themes | `discord_themes`, `discord_theme_active_guilds`, `discord_theme_applications`, `discord_theme_application_snapshots`, `discord_theme_assets`, `discord_theme_guild_locks`, `discord_theme_operations`, `discord_theme_operation_steps`, `discord_theme_resource_changes` | 9 |
+| Portaria | `portaria_bypasses` | 1 |
 
-The following five entries appear in the manifest but not in the
-2026-10-19 export: `event_scheduling`, `event_staffs`,
-`event_transfer_logs`, `event_transfer_requests`, `events`.
+The repository already contains versioned SQL related to these structures,
+including `V20261006_007`, `V20261007_002`, `V20261007_003`, and
+`V20261007_004`. A tracked migration script does **not** prove Flyway
+applied that version to the live database.
 
-Do **not** drop these entries or automatically create tables. Determine
-whether these are retired historical tables, migrated elsewhere, from a
-different database/schema, or genuine schema drift. Preserve audit history
-and unknown status until evidence resolves the discrepancy.
+### What made the earlier comparison misleading?
 
-### Why the simple 101 − 93 = 8 comparison is misleading
+The earlier 101-table export did not contain these **six** definitions,
+all of which are present in the newly supplied 107-table export:
 
-It conceals two different lists. Precisely **13** production-only names and
-**5** catalog-only names yield the net difference of eight. Updating only the
-expected count would make the validator pass without fixing the inventory.
+- `events`
+- `event_scheduling`
+- `event_staffs`
+- `event_transfer_logs`
+- `event_transfer_requests`
+- `discord_theme_resource_changes`
 
-The earlier 78-table statements in older ADRs/runbooks are historical and
-must not be used as the expected 2026-10-19 production table count.
+The preliminary report counted 13 export-only names and five manifest-only
+names against **that earlier file**, leading to a misleading explanation
+that event tables might be missing from production. The owner challenged
+that premise and supplied a new export that resolves it: all five event
+tables exist in the **new structure-only export**. The old export's omission
+does **not establish** that the tables were ever absent from the running
+database; export filters, export scope and timing have not been verified.
 
-## Coddy runtime DDL result
+**Do not create event tables, drop any object, remove manifest entries, or
+apply any migration merely to reconcile these snapshots.** The observed
+governance gap is that 14 already-exported tables are not classified in the
+ownership manifest. These are not missing from production.
 
-A source audit of the 79 non-test Python files on Coddy main `e701680`
-found no explicit `CREATE TABLE`, `ALTER TABLE`, `DROP TABLE`,
-`DROP INDEX` or `RENAME TABLE` SQL sites. The known 13 sites in
-`core/database.py` were retired in PRs #29–#32 and the XP cog mutations
-in earlier deliveries. The deployed final image was healthy and 735
-tests passed on the combined main.
+## Follow-up in BraFurries-Database
 
-Dynamic SQL exists, but the reviewed examples assemble **SELECT** or
-**UPDATE/INSERT** statements, not schema mutations (e.g.
-`core/database.py::getConfig` constructs a SELECT column list from metadata;
-`updateServerConfig` constructs an UPDATE SET clause).
+1. Extend the ownership manifest with the **14 real tables** from the new
+   export after reviewing their canonical migrations, runtime readers/writers,
+   key semantics and tenant isolation. Do not simply change
+   `table_count_expected` without actual entries.
+2. Preserve the 93 existing entries, including the five event tables.
+3. Confirm on the actual target via a **future authorized, read-only**
+   `information_schema` export with explicit schema selection that the
+   expected table inventory and fingerprint match. Capture full column,
+   index, foreign-key, nullability, default and charset metadata.
+4. Design a **separate explicit** Flyway baseline version and fresh-database
+   representation; the existing 2026 versioned migrations must not be
+   replayed blindly on production. Version-control SQL alone is not
+   `flyway_schema_history`.
+5. Preserve `schema_migrations` as historical evidence; do not import,
+   rename, clean or repair Flyway history automatically. Check external
+   legacy-runner invocation separately.
+6. Validate proposed baseline/upgrade behavior on disposable MariaDB 10.6,
+   including API compatibility, Coddy preflight and tenant constraints,
+   before requesting a production adoption plan.
 
-This is **static/code-path evidence only**, not formal runtime observation of
-all inputs, indirect SQL execution, stored procedures or database privileges.
-Any untrusted SQL construction or tenant authorization vulnerabilities should
-be tracked separately from DDL retirement.
+## Coddy runtime DDL status (separate workstream)
 
-## Flyway adoption blockers
+Coddy `main` at `e701680` has no explicit literal CREATE/ALTER/DROP/
+RENAME/TRUNCATE TABLE/INDEX sites in the reviewed 79 runtime Python files
+after PRs #23–#32. Static inspection is **not** a guarantee against SQL
+constructed entirely from dynamic input, external scripts or stored
+procedures. A regression guard is proposed in Coddy PR #33.
 
-1. **No baseline exists:** `flyway/sql/baseline/` contains no approved
-   baseline SQL; versioned SQL alone cannot build the complete historical
-   application schema on a fresh database.
-2. **No proven Flyway production history:** the supplied export contains
-   legacy `schema_migrations`, not `flyway_schema_history`. The absence in
-   this dump cannot substitute for read-only production verification immediately
-   before adoption.
-3. **No safe baseline version selected:** older versioned migrations may
-   already be represented in production via manual/transitional rollout.
-   Never apply historical `V...` scripts blindly over existing objects.
-4. **Catalog drift:** 13/5 mismatches above, including ownership and tenant
-   semantics requiring review.
-5. **Operational gate not implemented:** the production-only restricted
-   wrapper, dedicated credential, approved fingerprint, tested restore,
-   maintenance window and legacy runner-invocation evidence remain outstanding.
-6. **No-data export limitations:** it proves no cardinalities, existing
-   reference rows, historical uniqueness, data integrity or column-level
-   compatibility with current writers under real data.
+## Operational prohibition
 
-## Required next work (separate deliverables)
-
-1. **Governance PR:** reconcile each of the 13 newly observed objects into
-   `ownership/tables.yaml` using canonical versioned DDL and verified
-   ownership/tenant semantics. Retain the five historical-only entries
-   pending explicit classification; do not disguise the difference by
-   merely changing `table_count_expected`.
-2. **Offline fingerprint:** obtain a fresh sanitized structure-only snapshot,
-   normalize identifiers/types/defaults/constraints, compare each expected
-   table and produce a reviewed schema fingerprint/checksum. Do not publish
-   raw exports or credentials.
-3. **Baseline design:** propose the one-time explicit baseline version,
-   independent fresh-database representation, order of historical versions,
-   and N/N−1 compatibility. Review whether the selected Flyway edition,
-   baseline file format and actual version ordering support the plan.
-4. **Disposable validation:** build a **fresh** MariaDB 10.6 database and an
-   **upgrade/adoption fixture** reproducing the approved existing shape,
-   validate full Flyway history/checksums, API JPA projections, Coddy preflight,
-   tenant constraints and synthetic anomalies. The current smoke test validates
-   an isolated fixture, not the full 101-table production baseline.
-5. **Operational rollout, only after specific authorization:** confirm backup
-   restoration, restricted migration wrapper/credential, live read-only
-   fingerprint, exclusive schema-change window, absence of legacy runners,
-   manual explicit Flyway baseline (not `baselineOnMigrate`), postconditions,
-   API/Coddy health, and recorded evidence. Never auto-execute historical
-   versioned DDL during the adoption operation.
-
-## Legacy `schema_migrations`
-
-Keep the table and its rows unchanged as historical evidence. Do not translate
-them into `flyway_schema_history`, reset them, rename them, or drop them.
-The current public Coddy tree contains no `scripts/run_migrations.py` path;
-whether an external host wrapper or an older deployment invokes it must still
-be verified by operations. This observation is not proof about production
-processes.
-
-## Decision for this slice
-
-**No production baseline, schema DDL/DML, or manifest rewrite is approved by
-this audit.** The schema authority remains Database, while API handles
-administrative policy and Coddy handles observed network runtime effects.
-Keep [Coddy issue #3](https://github.com/BraFurries/BraFurries-Discord/issues/3)
-open until the above evidence and operational migration path are complete.
+**This document is not an executable Flyway baseline or permission to touch
+production.** No database DDL, DML, migrations, grant changes or production
+deploys are included in this documentation PR. Adoption still requires a
+validated fingerprint, compatible test fixtures, backup/restore evidence,
+restricted migration credential/wrapper, maintenance plan and explicit owner
+authorization. Track the catalog/baseline work in Database issue #6, and the
+runtime authority in Coddy issue #3.
