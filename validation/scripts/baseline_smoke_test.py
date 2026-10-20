@@ -23,7 +23,7 @@ BASELINE = ROOT / "flyway/sql/baseline/B20261020_001__adopt_production_schema.sq
 MANIFEST = ROOT / "ownership/tables.yaml"
 VERSION = "20261020.001"
 LOCATIONS = "-locations=filesystem:/flyway/baseline,filesystem:/flyway/official"
-TABLE_NAME = re.compile(r"(?m)^CREATE TABLE `([a-z][a-z0-9_]*)`\\s*\\(")
+TABLE_NAME = re.compile(r"(?m)^CREATE TABLE `([a-z][a-z0-9_]*)`\s*\(")
 
 
 def flyway(command: str, *, check: bool = True) -> int:
@@ -83,14 +83,14 @@ def verify_sql_static() -> None:
     expected = [item["table"] for item in load_yaml_unique(MANIFEST)["tables"]]
     if len(names)!=107 or len(set(names))!=107 or set(names)!=set(expected):
         raise SmokeFailure("baseline SQL does not contain exactly the 107 cataloged tables")
-    if re.search(r"(?im)^\\s*(?:CREATE DATABASE|USE |INSERT |UPDATE |DELETE |GRANT |DROP |ALTER USER)\\b", ddl):
+    if re.search(r"(?im)^\s*(?:CREATE DATABASE|USE |INSERT |UPDATE |DELETE |GRANT |DROP |ALTER USER)\b", ddl):
         raise SmokeFailure("baseline contains forbidden schema selector, data DML or destructive SQL")
     if "AUTO_INCREMENT=" in ddl or "IF NOT EXISTS" in ddl:
         raise SmokeFailure("baseline must be fail-fast and sanitized of source counters")
     created = set()
-    for match in re.finditer(r"(?ms)^CREATE TABLE `([a-z][a-z0-9_]*)`\\s*\\((.*?)^\\) ENGINE=", ddl):
+    for match in re.finditer(r"(?ms)^CREATE TABLE `([a-z][a-z0-9_]*)`\s*\((.*?)^\) ENGINE=", ddl):
         name, definition = match.groups()
-        for parent in re.findall(r"\\bREFERENCES\\s+`?([a-z][a-z0-9_]*)`?\\s*\\(",definition,re.I):
+        for parent in re.findall(r"\bREFERENCES\s+`?([a-z][a-z0-9_]*)`?\s*\(",definition,re.I):
             if parent != name and parent not in created:
                 raise SmokeFailure(f"FK dependency not yet created: {name} -> {parent}")
         created.add(name)
