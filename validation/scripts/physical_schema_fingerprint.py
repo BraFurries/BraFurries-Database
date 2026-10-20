@@ -210,9 +210,54 @@ def main() -> int:
     comparator = commands.add_parser("compare", help="offline comparison of two JSON captures")
     comparator.add_argument("expected", type=Path)
     comparator.add_argument("observed", type=Path)
+    disposable = commands.add_parser(
+        "capture-disposable", help="create a canonical JSON capture ONLY using pinned disposable Compose"
+    )
+    disposable.add_argument("output", type=Path, help="JSON output outside the Git working tree")
     args = parser.parse_args()
     if args.mode == "compare":
         return compare_files(args.expected, args.observed)
+    if args.mode == "capture-disposable":
+        from smoke_test import (
+            REPOSITORY_ROOT, SmokeFailure, safety_preflight, down,
+            start_empty_database, compose, assert_no_resources_remain,
+        )
+        output = args.output.resolve()
+        if output.is_relative_to(REPOSITORY_ROOT.resolve()) or output.exists():
+            print("Refusing to write fingerprint into the repo or overwrite an existing file")
+            return 2
+        accepted = False
+        result = 0
+        try:
+            safety_preflight()
+            accepted = True
+            down()
+            start_empty_database()
+            compose(
+                "run", "--rm", "--no-deps", "flyway",
+                "-locations=filesystem:/flyway/baseline,filesystem:/flyway/official",
+                "migrate",
+            )
+            snapshot = capture_disposable()
+            if len(snapshot["sections"]["tables"]) != 107:
+                raise FingerprintError("disposable baseline did not create all 107 tables")
+            output.write_text(
+                json.dumps(snapshot, ensure_ascii=False, sort_keys=True, indent=2) + "\n",
+                encoding="utf-8",
+            )
+            print(f"Captured 107 disposable tables | SHA256: {fingerprint(snapshot)}")
+        except (OSError, FingerprintError, SmokeFailure) as exc:
+            print(f"Disposable snapshot failed: {exc}")
+            result = 1
+        finally:
+            if accepted:
+                try:
+                    down()
+                    assert_no_resources_remain()
+                except SmokeFailure as exc:
+                    print(f"Cleanup failed: {exc}")
+                    result = 1
+        return result
     return 2
 
 
