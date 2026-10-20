@@ -45,7 +45,7 @@ def verify_schema() -> None:
         raise SmokeFailure(f"schema inventory mismatch: missing={missing}, unexpected={extra}")
     print("PASS: exact 107-table inventory matches current ownership manifest")
     checks = [
-        ("946", "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE()", "946 columns"),
+        ("946", "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME<>'flyway_schema_history'", "946 application columns"),
         ("127", "SELECT COUNT(*) FROM information_schema.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_SCHEMA=DATABASE()", "127 foreign keys"),
         ("105", "SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS WHERE TABLE_SCHEMA=DATABASE() AND CONSTRAINT_TYPE='PRIMARY KEY'", "105 primary keys; two legacy tables have none"),
         ("52", "SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS WHERE TABLE_SCHEMA=DATABASE() AND CONSTRAINT_TYPE='CHECK'", "52 CHECK constraints"),
