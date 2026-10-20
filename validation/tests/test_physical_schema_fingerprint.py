@@ -9,6 +9,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
 SPEC = importlib.util.spec_from_file_location(
@@ -80,6 +81,23 @@ class FingerprintTests(unittest.TestCase):
         a["sections"]["columns"].append(dict(a["sections"]["columns"][0]))
         with self.assertRaises(F.FingerprintError):
             F.normalize(a)
+
+    def test_capture_cli_refuses_repository_output_before_docker_preflight(self):
+        repository_path = SCRIPTS.parent / "accidental_prod_snapshot.json"
+        with patch.object(sys, "argv", ["fingerprint", "capture-disposable", str(repository_path)]):
+            with contextlib.redirect_stdout(io.StringIO()) as captured:
+                self.assertEqual(F.main(), 2)
+        self.assertIn("Refusing to write fingerprint", captured.getvalue())
+        self.assertFalse(repository_path.exists())
+
+    def test_capture_queries_are_metadata_selects_only(self):
+        self.assertEqual(set(F.QUERIES), set(F.SECTIONS))
+        for query in F.QUERIES.values():
+            self.assertTrue(query.lstrip().upper().startswith("SELECT "))
+            self.assertIn("information_schema.", query)
+            self.assertIn("DATABASE()", query)
+            self.assertNotIn("FROM backup_", query)
+        self.assertNotIn("INSERT", F.ENVIRONMENT_QUERY.upper())
 
     def test_cli_comparison_is_strict_and_does_not_print_data(self):
         with tempfile.TemporaryDirectory() as dir:
