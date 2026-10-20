@@ -20,7 +20,7 @@ It currently defines:
 - a pinned Flyway Open Source CLI and disposable MariaDB 10.6 validation harness;
 - ownership, migration-naming, YAML, and Markdown validation gates.
 
-It does **not** yet contain an official baseline. A [2026-10-19 reconciliation](docs/legacy/2026-10-19-production-schema-reconciliation.md) records **101 tables** in the owner-provided production structure-only export versus **93 entries** in the ownership manifest (13 export-only and 5 manifest-only names). Versioned history starts with the structural adoption of `user_identity_links`.
+It does **not** yet contain an official baseline. The [corrected production-export reconciliation](docs/legacy/2026-10-19-production-schema-reconciliation.md) counts **107 tables** in the latest owner-provided structure-only export and **93 manifest entries**: every cataloged table appears in that export, while **14 additional production-export tables** lack ownership entries. An earlier 101-table export omitted six definitions; this does not prove those tables were absent from the live database. Versioned history starts with the structural adoption of `user_identity_links`.
 
 ## Authority
 
