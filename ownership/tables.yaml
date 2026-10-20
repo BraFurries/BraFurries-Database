@@ -1,6 +1,6 @@
 manifest_version: 1
-last_reviewed: '2026-10-02'
-table_count_expected: 93
+last_reviewed: '2026-10-20'
+table_count_expected: 107
 schema_authority: BraFurries-Database
 semantics:
   runtime_access: Normal application data access; excludes identity-link reads and migration execution.
@@ -239,6 +239,75 @@ tables:
   - schema-audit-v2
   - coddy-schema-current.sql-external-evidence
   notes: Runtime schema initialization is validation-only; canonical DDL is owned by Flyway.
+- table: backup_guild_locks
+  status: "ACTIVE"
+  domain_owner: "SHARED"
+  schema_authority: "BraFurries-Database"
+  runtime_readers:
+  - "BraFurries-Discord"
+  runtime_writers:
+  - "BraFurries-API"
+  - "BraFurries-Discord"
+  identity_merge_writer: []
+  current_ddl_owner: "BRA_FURRIES_DATABASE_FLYWAY"
+  id_semantics:
+  - "guild_id=DISCORD_GUILD_SNOWFLAKE_WITHOUT_FK"
+  - "operation_id=BACKUP_OPERATION_ID_POLYMORPHIC_SNAPSHOT_OR_RESTORE"
+  logical_key:
+  - "guild_id"
+  physical_keys:
+    primary_key:
+    - guild_id
+    non_unique_indexes:
+    -
+      - expires_at
+  merge_policy: "NOT_APPLICABLE"
+  current_consumers:
+  - "BraFurries-Discord"
+  - "BraFurries-API"
+  current_ddl_paths:
+  - "flyway/sql/versioned/V20261007_002__formalize_discord_backup_schema.sql"
+  evidence:
+  - "production-structure-export-2026-10-20-external-evidence"
+  - "flyway/sql/versioned/V20261007_002__formalize_discord_backup_schema.sql"
+  notes: "Guild-scoped lock; Coddy acquires/releases it, API removes it during guild data purge. No FK to operations: guard operation_id and operation_type by guild at runtime."
+- table: backup_operation_steps
+  status: "ACTIVE"
+  domain_owner: "SHARED"
+  schema_authority: "BraFurries-Database"
+  runtime_readers:
+  - "BraFurries-API"
+  - "BraFurries-Discord"
+  runtime_writers:
+  - "BraFurries-API"
+  - "BraFurries-Discord"
+  identity_merge_writer: []
+  current_ddl_owner: "BRA_FURRIES_DATABASE_FLYWAY"
+  id_semantics:
+  - "id=INTERNAL_BACKUP_STEP_ID"
+  - "guild_id=DISCORD_GUILD_SNOWFLAKE_WITHOUT_FK"
+  - "operation_id=POLYMORPHIC_BACKUP_SNAPSHOT_OR_RESTORE_ID"
+  logical_key:
+  - "id"
+  physical_keys:
+    primary_key:
+    - id
+    non_unique_indexes:
+    -
+      - guild_id
+      - operation_kind
+      - operation_id
+      - id
+  merge_policy: "NOT_APPLICABLE"
+  current_consumers:
+  - "BraFurries-API"
+  - "BraFurries-Discord"
+  current_ddl_paths:
+  - "flyway/sql/versioned/V20261007_003__track_backup_operations_and_single_snapshot_policy.sql"
+  evidence:
+  - "production-structure-export-2026-10-20-external-evidence"
+  - "flyway/sql/versioned/V20261007_003__track_backup_operations_and_single_snapshot_policy.sql"
+  notes: "Snapshot/restore progress timeline: Coddy writes steps, API reads and purges. No operation FK (polymorphic key); callers must use guild_id, operation_kind and operation_id together."
 - table: backup_overwrites
   status: ACTIVE
   domain_owner: DISCORD
@@ -263,6 +332,58 @@ tables:
   - schema-audit-v2
   - coddy-schema-current.sql-external-evidence
   notes: Overwrite targets distinguish normal roles from @everyone and Discord-managed roles; special targets are identified by Discord snowflake without synthetic backup_roles rows.
+- table: backup_restore_operations
+  status: "ACTIVE"
+  domain_owner: "SHARED"
+  schema_authority: "BraFurries-Database"
+  runtime_readers:
+  - "BraFurries-API"
+  - "BraFurries-Discord"
+  runtime_writers:
+  - "BraFurries-API"
+  - "BraFurries-Discord"
+  identity_merge_writer: []
+  current_ddl_owner: "BRA_FURRIES_DATABASE_FLYWAY"
+  id_semantics:
+  - "id=INTERNAL_BACKUP_RESTORE_OPERATION_ID"
+  - "guild_id=DISCORD_GUILD_SNOWFLAKE_WITHOUT_FK"
+  - "backup_id=INTERNAL_BACKUP_ID_WITHOUT_FK"
+  - "actor_discord_user_id=DISCORD_USER_SNOWFLAKE_WITHOUT_FK"
+  - "actor_user_id=INTERNAL_USER_ID_FK"
+  logical_key:
+  - "guild_id"
+  - "operation_key"
+  physical_keys:
+    primary_key:
+    - id
+    unique_keys:
+    -
+      - guild_id
+      - operation_key
+    non_unique_indexes:
+    -
+      - guild_id
+      - status
+      - id
+    -
+      - guild_id
+      - backup_id
+    -
+      - actor_user_id
+    foreign_keys:
+    - "actor_user_id=users.id ON DELETE SET NULL"
+  merge_policy: "NOT_APPLICABLE"
+  current_consumers:
+  - "BraFurries-API"
+  - "BraFurries-Discord"
+  current_ddl_paths:
+  - "flyway/sql/versioned/V20261007_002__formalize_discord_backup_schema.sql"
+  - "flyway/sql/versioned/V20261007_003__track_backup_operations_and_single_snapshot_policy.sql"
+  evidence:
+  - "production-structure-export-2026-10-20-external-evidence"
+  - "flyway/sql/versioned/V20261007_002__formalize_discord_backup_schema.sql"
+  - "flyway/sql/versioned/V20261007_003__track_backup_operations_and_single_snapshot_policy.sql"
+  notes: "API requests/tracks restore; Coddy performs the live Discord effect. backup_id has no database FK: API validates membership in the same guild, and Coddy must revalidate."
 - table: backup_roles
   status: ACTIVE
   domain_owner: DISCORD
@@ -310,6 +431,56 @@ tables:
   - schema-audit-v2
   - coddy-schema-current.sql-external-evidence
   notes: Runtime schema initialization is validation-only; canonical DDL is owned by Flyway.
+- table: backup_snapshot_operations
+  status: "ACTIVE"
+  domain_owner: "SHARED"
+  schema_authority: "BraFurries-Database"
+  runtime_readers:
+  - "BraFurries-API"
+  - "BraFurries-Discord"
+  runtime_writers:
+  - "BraFurries-API"
+  - "BraFurries-Discord"
+  identity_merge_writer: []
+  current_ddl_owner: "BRA_FURRIES_DATABASE_FLYWAY"
+  id_semantics:
+  - "id=INTERNAL_BACKUP_SNAPSHOT_OPERATION_ID"
+  - "guild_id=DISCORD_GUILD_SNOWFLAKE_WITHOUT_FK"
+  - "backup_id=INTERNAL_BACKUP_ID_WITHOUT_FK"
+  - "actor_discord_user_id=DISCORD_USER_SNOWFLAKE_WITHOUT_FK"
+  - "actor_user_id=INTERNAL_USER_ID_FK"
+  logical_key:
+  - "guild_id"
+  - "operation_key"
+  physical_keys:
+    primary_key:
+    - id
+    unique_keys:
+    -
+      - guild_id
+      - operation_key
+    non_unique_indexes:
+    -
+      - guild_id
+      - status
+      - id
+    -
+      - guild_id
+      - backup_id
+    -
+      - actor_user_id
+    foreign_keys:
+    - "actor_user_id=users.id ON DELETE SET NULL"
+  merge_policy: "NOT_APPLICABLE"
+  current_consumers:
+  - "BraFurries-API"
+  - "BraFurries-Discord"
+  current_ddl_paths:
+  - "flyway/sql/versioned/V20261007_003__track_backup_operations_and_single_snapshot_policy.sql"
+  evidence:
+  - "production-structure-export-2026-10-20-external-evidence"
+  - "flyway/sql/versioned/V20261007_003__track_backup_operations_and_single_snapshot_policy.sql"
+  notes: "API creates/tracks snapshot and Coddy executes it. Idempotency scoped to (guild_id, operation_key); nullable backup_id has no FK and must be guild-checked."
 - table: blacklisted_games
   status: ACTIVE
   domain_owner: DISCORD
@@ -1201,6 +1372,408 @@ tables:
   - schema-audit-v2
   - coddy-schema-current.sql-external-evidence
   notes: ''
+- table: discord_theme_active_guilds
+  status: "ACTIVE"
+  domain_owner: "SHARED"
+  schema_authority: "BraFurries-Database"
+  runtime_readers:
+  - "BraFurries-API"
+  runtime_writers:
+  - "BraFurries-API"
+  - "BraFurries-Discord"
+  identity_merge_writer: []
+  current_ddl_owner: "BRA_FURRIES_DATABASE_FLYWAY"
+  id_semantics:
+  - "guild_id=DISCORD_GUILD_SNOWFLAKE_WITHOUT_FK"
+  - "application_id=INTERNAL_THEME_APPLICATION_ID"
+  logical_key:
+  - "guild_id"
+  physical_keys:
+    primary_key:
+    - guild_id
+    unique_keys:
+    -
+      - application_id
+    non_unique_indexes:
+    -
+      - guild_id
+      - application_id
+    foreign_keys:
+    - "(guild_id,application_id)=discord_theme_applications.(guild_id,id) ON DELETE CASCADE"
+  merge_policy: "NOT_APPLICABLE"
+  current_consumers:
+  - "BraFurries-API"
+  - "BraFurries-Discord"
+  current_ddl_paths:
+  - "flyway/sql/versioned/V20261007_004__create_discord_temporary_themes.sql"
+  evidence:
+  - "production-structure-export-2026-10-20-external-evidence"
+  - "flyway/sql/versioned/V20261007_004__create_discord_temporary_themes.sql"
+  notes: "Exactly one active theme application per Discord guild; API claims activation and Coddy releases it on restore. Composite FK prevents cross-guild application binding."
+- table: discord_theme_application_snapshots
+  status: "ACTIVE"
+  domain_owner: "SHARED"
+  schema_authority: "BraFurries-Database"
+  runtime_readers:
+  - "BraFurries-API"
+  - "BraFurries-Discord"
+  runtime_writers:
+  - "BraFurries-Discord"
+  identity_merge_writer: []
+  current_ddl_owner: "BRA_FURRIES_DATABASE_FLYWAY"
+  id_semantics:
+  - "id=INTERNAL_THEME_APPLICATION_SNAPSHOT_ID"
+  - "application_id=INTERNAL_THEME_APPLICATION_ID_FK"
+  - "resource_discord_id=DISCORD_RESOURCE_SNOWFLAKE_OR_GUILD_SENTINEL"
+  logical_key:
+  - "application_id"
+  - "resource_type"
+  - "resource_discord_id"
+  physical_keys:
+    primary_key:
+    - id
+    unique_keys:
+    -
+      - application_id
+      - resource_type
+      - resource_discord_id
+    non_unique_indexes:
+    -
+      - application_id
+      - id
+    foreign_keys:
+    - "application_id=discord_theme_applications.id ON DELETE CASCADE"
+  merge_policy: "NOT_APPLICABLE"
+  current_consumers:
+  - "BraFurries-API"
+  - "BraFurries-Discord"
+  current_ddl_paths:
+  - "flyway/sql/versioned/V20261007_004__create_discord_temporary_themes.sql"
+  evidence:
+  - "production-structure-export-2026-10-20-external-evidence"
+  - "flyway/sql/versioned/V20261007_004__create_discord_temporary_themes.sql"
+  notes: "No guild_id column: tenant is resolved through application_id -> discord_theme_applications.guild_id. All API reads/updates must join parent with guild filter; Coddy snapshots live Discord state."
+- table: discord_theme_applications
+  status: "ACTIVE"
+  domain_owner: "SHARED"
+  schema_authority: "BraFurries-Database"
+  runtime_readers:
+  - "BraFurries-API"
+  - "BraFurries-Discord"
+  runtime_writers:
+  - "BraFurries-API"
+  - "BraFurries-Discord"
+  identity_merge_writer: []
+  current_ddl_owner: "BRA_FURRIES_DATABASE_FLYWAY"
+  id_semantics:
+  - "id=INTERNAL_THEME_APPLICATION_ID"
+  - "guild_id=DISCORD_GUILD_SNOWFLAKE_WITHOUT_FK"
+  - "theme_id=INTERNAL_THEME_ID_SAME_GUILD_FK"
+  - "actor_discord_user_id=DISCORD_USER_SNOWFLAKE_WITHOUT_FK"
+  - "actor_user_id=INTERNAL_USER_ID_FK"
+  logical_key:
+  - "guild_id"
+  - "id"
+  physical_keys:
+    primary_key:
+    - id
+    unique_keys:
+    -
+      - guild_id
+      - id
+    non_unique_indexes:
+    -
+      - guild_id
+      - status
+      - id
+    -
+      - theme_id
+      - id
+    -
+      - guild_id
+      - theme_id
+    -
+      - actor_user_id
+    foreign_keys:
+    - "(guild_id,theme_id)=discord_themes.(guild_id,id)"
+    - "actor_user_id=users.id ON DELETE SET NULL"
+  merge_policy: "NOT_APPLICABLE"
+  current_consumers:
+  - "BraFurries-API"
+  - "BraFurries-Discord"
+  current_ddl_paths:
+  - "flyway/sql/versioned/V20261007_004__create_discord_temporary_themes.sql"
+  evidence:
+  - "production-structure-export-2026-10-20-external-evidence"
+  - "flyway/sql/versioned/V20261007_004__create_discord_temporary_themes.sql"
+  notes: "Shared API control-plane lifecycle and Coddy live apply/rollback; composite theme FK enforces same guild."
+- table: discord_theme_assets
+  status: "ACTIVE"
+  domain_owner: "API"
+  schema_authority: "BraFurries-Database"
+  runtime_readers:
+  - "BraFurries-API"
+  runtime_writers:
+  - "BraFurries-API"
+  identity_merge_writer: []
+  current_ddl_owner: "BRA_FURRIES_DATABASE_FLYWAY"
+  id_semantics:
+  - "id=INTERNAL_THEME_ASSET_ID"
+  - "theme_id=INTERNAL_THEME_ID_SAME_GUILD_FK"
+  - "guild_id=DISCORD_GUILD_SNOWFLAKE_WITHOUT_FK"
+  logical_key:
+  - "storage_key"
+  physical_keys:
+    primary_key:
+    - id
+    unique_keys:
+    -
+      - storage_key
+    non_unique_indexes:
+    -
+      - theme_id
+      - asset_type
+      - id
+    -
+      - guild_id
+      - theme_id
+      - id
+    foreign_keys:
+    - "(guild_id,theme_id)=discord_themes.(guild_id,id) ON DELETE CASCADE"
+  merge_policy: "NOT_APPLICABLE"
+  current_consumers:
+  - "BraFurries-API"
+  current_ddl_paths:
+  - "flyway/sql/versioned/V20261007_004__create_discord_temporary_themes.sql"
+  evidence:
+  - "production-structure-export-2026-10-20-external-evidence"
+  - "flyway/sql/versioned/V20261007_004__create_discord_temporary_themes.sql"
+  notes: "API stores metadata and serves assets via internal HTTP control plane; Coddy consumes asset bytes through API, not direct table access. Composite FK guards tenant."
+- table: discord_theme_guild_locks
+  status: "ACTIVE"
+  domain_owner: "DISCORD"
+  schema_authority: "BraFurries-Database"
+  runtime_readers:
+  - "BraFurries-Discord"
+  runtime_writers:
+  - "BraFurries-Discord"
+  identity_merge_writer: []
+  current_ddl_owner: "BRA_FURRIES_DATABASE_FLYWAY"
+  id_semantics:
+  - "guild_id=DISCORD_GUILD_SNOWFLAKE_WITHOUT_FK"
+  - "operation_id=INTERNAL_THEME_OPERATION_ID_SAME_GUILD_FK"
+  - "application_id=INTERNAL_THEME_APPLICATION_ID"
+  logical_key:
+  - "guild_id"
+  physical_keys:
+    primary_key:
+    - guild_id
+    non_unique_indexes:
+    -
+      - expires_at
+    -
+      - guild_id
+      - operation_id
+      - application_id
+    foreign_keys:
+    - "(guild_id,operation_id,application_id)=discord_theme_operations.(guild_id,id,application_id) ON DELETE CASCADE"
+  merge_policy: "NOT_APPLICABLE"
+  current_consumers:
+  - "BraFurries-Discord"
+  current_ddl_paths:
+  - "flyway/sql/versioned/V20261007_004__create_discord_temporary_themes.sql"
+  evidence:
+  - "production-structure-export-2026-10-20-external-evidence"
+  - "flyway/sql/versioned/V20261007_004__create_discord_temporary_themes.sql"
+  notes: "Coddy live-effect mutex per guild. Composite FK binds lock to an operation/application in the same guild."
+- table: discord_theme_operation_steps
+  status: "ACTIVE"
+  domain_owner: "SHARED"
+  schema_authority: "BraFurries-Database"
+  runtime_readers:
+  - "BraFurries-API"
+  runtime_writers:
+  - "BraFurries-Discord"
+  identity_merge_writer: []
+  current_ddl_owner: "BRA_FURRIES_DATABASE_FLYWAY"
+  id_semantics:
+  - "id=INTERNAL_THEME_STEP_ID"
+  - "guild_id=DISCORD_GUILD_SNOWFLAKE_WITHOUT_FK"
+  - "operation_id=INTERNAL_THEME_OPERATION_ID_SAME_GUILD_FK"
+  logical_key:
+  - "id"
+  physical_keys:
+    primary_key:
+    - id
+    non_unique_indexes:
+    -
+      - operation_id
+      - id
+    -
+      - guild_id
+      - operation_id
+      - id
+    foreign_keys:
+    - "(guild_id,operation_id)=discord_theme_operations.(guild_id,id) ON DELETE CASCADE"
+  merge_policy: "NOT_APPLICABLE"
+  current_consumers:
+  - "BraFurries-API"
+  - "BraFurries-Discord"
+  current_ddl_paths:
+  - "flyway/sql/versioned/V20261007_004__create_discord_temporary_themes.sql"
+  evidence:
+  - "production-structure-export-2026-10-20-external-evidence"
+  - "flyway/sql/versioned/V20261007_004__create_discord_temporary_themes.sql"
+  notes: "Coddy appends execution steps, API reads them for progress. Composite FK prevents an operation step referencing a different guild."
+- table: discord_theme_operations
+  status: "ACTIVE"
+  domain_owner: "SHARED"
+  schema_authority: "BraFurries-Database"
+  runtime_readers:
+  - "BraFurries-API"
+  - "BraFurries-Discord"
+  runtime_writers:
+  - "BraFurries-API"
+  - "BraFurries-Discord"
+  identity_merge_writer: []
+  current_ddl_owner: "BRA_FURRIES_DATABASE_FLYWAY"
+  id_semantics:
+  - "id=INTERNAL_THEME_OPERATION_ID"
+  - "guild_id=DISCORD_GUILD_SNOWFLAKE_WITHOUT_FK"
+  - "application_id=INTERNAL_THEME_APPLICATION_ID_SAME_GUILD_FK"
+  - "actor_discord_user_id=DISCORD_USER_SNOWFLAKE_WITHOUT_FK"
+  - "actor_user_id=INTERNAL_USER_ID_FK"
+  logical_key:
+  - "guild_id"
+  - "operation_key"
+  physical_keys:
+    primary_key:
+    - id
+    unique_keys:
+    -
+      - guild_id
+      - operation_key
+    -
+      - guild_id
+      - id
+    -
+      - guild_id
+      - id
+      - application_id
+    non_unique_indexes:
+    -
+      - application_id
+      - operation_type
+      - id
+    -
+      - guild_id
+      - status
+      - id
+    -
+      - guild_id
+      - application_id
+    -
+      - actor_user_id
+    foreign_keys:
+    - "(guild_id,application_id)=discord_theme_applications.(guild_id,id) ON DELETE CASCADE"
+    - "actor_user_id=users.id ON DELETE SET NULL"
+  merge_policy: "NOT_APPLICABLE"
+  current_consumers:
+  - "BraFurries-API"
+  - "BraFurries-Discord"
+  current_ddl_paths:
+  - "flyway/sql/versioned/V20261007_004__create_discord_temporary_themes.sql"
+  evidence:
+  - "production-structure-export-2026-10-20-external-evidence"
+  - "flyway/sql/versioned/V20261007_004__create_discord_temporary_themes.sql"
+  notes: "API creates/audits requested operations; Coddy performs the effect and progress updates. Composite application FK and guild-scoped operation_key support tenancy and idempotency."
+- table: discord_theme_resource_changes
+  status: "ACTIVE"
+  domain_owner: "API"
+  schema_authority: "BraFurries-Database"
+  runtime_readers:
+  - "BraFurries-API"
+  runtime_writers:
+  - "BraFurries-API"
+  identity_merge_writer: []
+  current_ddl_owner: "BRA_FURRIES_DATABASE_FLYWAY"
+  id_semantics:
+  - "id=INTERNAL_THEME_RESOURCE_CHANGE_ID"
+  - "theme_id=INTERNAL_THEME_ID_FK"
+  - "resource_discord_id=DISCORD_RESOURCE_SNOWFLAKE_WITHOUT_FK"
+  logical_key:
+  - "theme_id"
+  - "resource_type"
+  - "resource_discord_id"
+  physical_keys:
+    primary_key:
+    - id
+    unique_keys:
+    -
+      - theme_id
+      - resource_type
+      - resource_discord_id
+    non_unique_indexes:
+    -
+      - theme_id
+      - id
+    foreign_keys:
+    - "theme_id=discord_themes.id ON DELETE CASCADE"
+  merge_policy: "NOT_APPLICABLE"
+  current_consumers:
+  - "BraFurries-API"
+  current_ddl_paths:
+  - "flyway/sql/versioned/V20261007_004__create_discord_temporary_themes.sql"
+  evidence:
+  - "production-structure-export-2026-10-20-external-evidence"
+  - "flyway/sql/versioned/V20261007_004__create_discord_temporary_themes.sql"
+  notes: "No guild_id column: tenant is resolved through theme_id -> discord_themes.guild_id. API must authorize the guild-scoped theme before replacing or reading these rows; never use bare theme_id as an authorization check."
+- table: discord_themes
+  status: "ACTIVE"
+  domain_owner: "API"
+  schema_authority: "BraFurries-Database"
+  runtime_readers:
+  - "BraFurries-API"
+  runtime_writers:
+  - "BraFurries-API"
+  identity_merge_writer: []
+  current_ddl_owner: "BRA_FURRIES_DATABASE_FLYWAY"
+  id_semantics:
+  - "id=INTERNAL_THEME_ID"
+  - "guild_id=DISCORD_GUILD_SNOWFLAKE_WITHOUT_FK"
+  - "created_by_discord_user_id=DISCORD_USER_SNOWFLAKE_WITHOUT_FK"
+  - "created_by_user_id=INTERNAL_USER_ID_FK"
+  logical_key:
+  - "guild_id"
+  - "id"
+  physical_keys:
+    primary_key:
+    - id
+    unique_keys:
+    -
+      - guild_id
+      - id
+    -
+      - guild_id
+      - active_name
+    non_unique_indexes:
+    -
+      - guild_id
+      - deleted_at
+      - id
+    -
+      - created_by_user_id
+    foreign_keys:
+    - "created_by_user_id=users.id ON DELETE SET NULL"
+  merge_policy: "NOT_APPLICABLE"
+  current_consumers:
+  - "BraFurries-API"
+  current_ddl_paths:
+  - "flyway/sql/versioned/V20261007_004__create_discord_temporary_themes.sql"
+  evidence:
+  - "production-structure-export-2026-10-20-external-evidence"
+  - "flyway/sql/versioned/V20261007_004__create_discord_temporary_themes.sql"
+  notes: "API-owned theme definitions. active_name is a STORED generated column used for name uniqueness among non-deleted themes; every theme lookup must filter by guild_id."
 - table: event_scheduling
   status: ACTIVE
   domain_owner: API
@@ -1667,6 +2240,49 @@ tables:
   - schema-audit-v2
   - coddy-schema-current.sql-external-evidence
   notes: Legacy repair includes column transitions, backfill, and DROP COLUMN; classified CRITICAL. portaria_enabled is an independent lifecycle flag; its DEFAULT 1 preserves legacy enabled behavior and does not derive from formulario_portaria_ativo.
+- table: portaria_bypasses
+  status: "ACTIVE"
+  domain_owner: "DISCORD"
+  schema_authority: "BraFurries-Database"
+  runtime_readers:
+  - "BraFurries-Discord"
+  runtime_writers:
+  - "BraFurries-Discord"
+  identity_merge_writer: []
+  current_ddl_owner: "BRA_FURRIES_DATABASE_FLYWAY"
+  id_semantics:
+  - "id=INTERNAL_PORTARIA_BYPASS_ID"
+  - "server_guild_id=DISCORD_GUILD_SNOWFLAKE_WITHOUT_FK"
+  - "discord_user_id=DISCORD_USER_SNOWFLAKE_WITHOUT_FK"
+  logical_key: UNKNOWN
+  physical_keys:
+    primary_key:
+    - id
+    unique_keys:
+    -
+      - server_guild_id
+      - bypass_type
+      - discord_user_id
+    -
+      - server_guild_id
+      - bypass_type
+      - invite_code
+    non_unique_indexes:
+    -
+      - server_guild_id
+      - active
+    -
+      - active
+      - expires_at
+  merge_policy: "NOT_APPLICABLE"
+  current_consumers:
+  - "BraFurries-Discord"
+  current_ddl_paths:
+  - "flyway/sql/versioned/V20261006_007__formalize_moderation_access_and_portaria_bypasses.sql"
+  evidence:
+  - "production-structure-export-2026-10-20-external-evidence"
+  - "flyway/sql/versioned/V20261006_007__formalize_moderation_access_and_portaria_bypasses.sql"
+  notes: "Invite/account targets have distinct nullable unique keys; CHECK enforces target type. Discord only honors active unexpired bypasses when Portaria is enabled; all lookups/writes must filter by server_guild_id."
 - table: schema_migrations
   status: LEGACY_MIGRATION_HISTORY
   domain_owner: INFRASTRUCTURE
