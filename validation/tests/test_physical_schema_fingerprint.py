@@ -96,7 +96,7 @@ class FingerprintTests(unittest.TestCase):
             out = io.StringIO()
             with contextlib.redirect_stdout(out):
                 self.assertEqual(F.compare_files(first, second), 1)
-            self.assertIn("changed a/1", out.getvalue())
+            self.assertIn("changed a/id", out.getvalue())
             self.assertNotIn("varchar(255)", out.getvalue())
 
 
