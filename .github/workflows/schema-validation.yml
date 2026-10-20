@@ -53,6 +53,9 @@ jobs:
       - name: Verify full baseline and explicit adoption in disposable MariaDB
         run: python validation/scripts/baseline_smoke_test.py
 
+      - name: Verify synthetic tenant isolation and cross-guild relationships
+        run: python validation/scripts/tenant_isolation_smoke_test.py
+
       - name: Run disposable Flyway smoke test
         run: python validation/scripts/smoke_test.py
 

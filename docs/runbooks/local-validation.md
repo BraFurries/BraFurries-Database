@@ -152,6 +152,35 @@ and hashes, never rows. It does not replace the later live normalized
 `information_schema` fingerprint, reference data verification or release
 approval. Unit tests use only synthetic SQL.
 
+## Synthetic tenant-isolation smoke (backup and temporary themes)
+
+```text
+python validation/scripts/tenant_isolation_smoke_test.py
+```
+
+The harness reuses the **same isolated, disposable, MariaDB 10.6 environment**
+and starts from the reproducible Flyway B baseline. It creates **only synthetic
+guilds and records**, then verifies:
+
+- Discord theme applications, active slots, operations, steps and locks refuse
+  cross-guild references through composite foreign keys.
+- Theme idempotency keys can be reused safely across distinct guilds.
+- Theme application snapshots and resource changes do **not** contain a local
+  `guild_id`; parent JOINs restricted by guild exclude records from other tenants.
+- Backups require application-layer same-guild validation when selecting
+  `backup_id` for restore. The schema intentionally has **no backup ID FK**
+  on restore operations.
+- Backup operation steps use a polymorphic operation ID with **no FK**; API and
+  Coddy must scope every lookup by guild, kind and operation ID. Synthetic
+  read queries exercise that SQL contract without implying DB authorization.
+
+**Limits:** A passing test proves MariaDB referential constraints and example
+guild-scoped SQL semantics; it does **not** prove the authorization branches of
+`BraFurries-API` or `BraFurries-Discord`. These must be verified in their
+own isolated application/service tests, including forged community identifiers,
+unknown callers and concurrent requests. CI does not start either application.
+No production data, URLs, credentials or database connections are used.
+
 ## Still prohibited
 
 - production VM or database access;
