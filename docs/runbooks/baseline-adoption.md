@@ -38,6 +38,19 @@ Adopt the already-existing production schema into Flyway history without recreat
 - reviewer and operator approvals;
 - expected Flyway baseline version and description.
 
+## Version alignment and verified candidate
+
+The current proposal is `B20261020_001__adopt_production_schema.sql`:
+version `20261020.001`. In an **empty** database, Flyway runs this B
+migration and skips earlier V scripts. In an **existing** database, adoption
+must use an explicit `baseline` operation at the matching version **without**
+running the creation SQL. `baselineOnMigrate` remains disabled.
+
+This phase does not provide a production wrapper, credentials, a maintenance
+window, live structural fingerprint or approval to execute adoption. The
+offline DDL-equality utility verifies the source export; it is not a
+replacement for a current live `information_schema` comparison.
+
 ## Conceptual sequence
 
 1. Freeze schema changes and deployments.
