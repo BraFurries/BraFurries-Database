@@ -111,7 +111,7 @@ Only environment-variable names are reported on rejection; values are never read
 
 - YAML parsing with duplicate-key rejection;
 - local Markdown link targets;
-- the currently 93-entry ownership manifest and registered values; the 2026-10-19 production export enumerates 101 tables and the unresolved 13/5 name divergence is documented in [the reconciliation report](../legacy/2026-10-19-production-schema-reconciliation.md);
+- the currently 93-entry ownership manifest and registered values; the latest owner-provided export enumerates 107 tables, including all 93 manifest entries, with 14 more requiring ownership classification, as documented in [the corrected reconciliation report](../legacy/2026-10-19-production-schema-reconciliation.md);
 - migration paths, naming, uniqueness, reserved draft versions, and approved official SQL;
 - rendered Docker Compose validity;
 - the complete disposable Flyway/MariaDB smoke test.
