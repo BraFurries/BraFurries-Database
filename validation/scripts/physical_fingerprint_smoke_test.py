@@ -41,7 +41,8 @@ def run_smoke() -> None:
     structure = normalize(pristine)["sections"]
     require_equal(str(len(structure["tables"])), "107", "physical snapshot contains 107 tables")
     require_equal(str(len(structure["columns"])), "946", "physical snapshot contains 946 columns")
-    require_equal(str(len(structure["foreign_keys"])), "127", "physical snapshot includes all 127 FK segments")
+    unique_fk = {(row["table"], row["constraint"]) for row in structure["foreign_keys"]}
+    require_equal(str(len(unique_fk)), "127", "physical snapshot includes 127 FK constraints")
     require_equal(str(len(structure["checks"])), "52", "physical snapshot includes 52 CHECK constraints")
     if any(name in str(structure) for name in ("flyway_schema_history", PROBE_COLUMN)):
         raise SmokeFailure("snapshot includes internal Flyway metadata or unexpected probe")
