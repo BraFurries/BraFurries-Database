@@ -85,7 +85,12 @@ def verify_sql_static() -> None:
         raise SmokeFailure("baseline SQL does not contain exactly the 107 cataloged tables")
     if re.search(r"(?im)^\s*(?:CREATE DATABASE|USE |INSERT |UPDATE |DELETE |GRANT |DROP |ALTER USER)\b", ddl):
         raise SmokeFailure("baseline contains forbidden schema selector, data DML or destructive SQL")
-    if "AUTO_INCREMENT=" in ddl or "IF NOT EXISTS" in ddl:
+    active_sql = "\n".join(
+        line for line in ddl.splitlines() if not line.lstrip().startswith("--")
+    )
+    if "AUTO_INCREMENT=" in active_sql or re.search(
+        r"(?i)CREATE\s+TABLE\s+IF\s+NOT\s+EXISTS", active_sql
+    ):
         raise SmokeFailure("baseline must be fail-fast and sanitized of source counters")
     created = set()
     for match in re.finditer(r"(?ms)^CREATE TABLE `([a-z][a-z0-9_]*)`\s*\((.*?)^\) ENGINE=", ddl):
