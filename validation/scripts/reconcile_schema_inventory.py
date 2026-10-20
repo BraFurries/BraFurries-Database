@@ -16,8 +16,8 @@ from yaml_utils import load_yaml_unique
 ROOT = Path(__file__).resolve().parents[2]
 MANIFEST = ROOT / "ownership" / "tables.yaml"
 CREATE_TABLE = re.compile(
-    r"^\\s*CREATE\\s+TABLE\\s+(?:IF\\s+NOT\\s+EXISTS\\s+)?"
-    r"(?:`([a-z][a-z0-9_]*)`|([a-z][a-z0-9_]*))\\s*\\(",
+    r"^\s*CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?"
+    r"(?:`([a-z][a-z0-9_]*)`|([a-z][a-z0-9_]*))\s*\(",
     re.IGNORECASE | re.MULTILINE,
 )
 
