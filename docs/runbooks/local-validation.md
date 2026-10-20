@@ -200,7 +200,8 @@ reviewed before adopting Flyway.
 
 ```text
 python validation/scripts/physical_fingerprint_smoke_test.py
-python validation/scripts/physical_schema_fingerprint.py compare expected.json observed.json
+python validation/scripts/physical_schema_fingerprint.py capture-disposable "/private/tmp/expected.json"
+python validation/scripts/physical_schema_fingerprint.py compare "/private/tmp/expected.json" "/private/tmp/observed.json"
 ```
 
 The smoke test performs an initial capture, repeats it (expect identical digest),
