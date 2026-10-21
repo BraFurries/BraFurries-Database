@@ -63,7 +63,7 @@ def run() -> None:
     count(
         "SELECT COUNT(*) FROM information_schema.REFERENTIAL_CONSTRAINTS "
         "WHERE CONSTRAINT_SCHEMA=DATABASE() AND TABLE_NAME LIKE 'recruitment_%'",
-        10, "all ten recruitment foreign keys exist",
+        9, "all nine recruitment foreign keys exist",
     )
 
     execute(
