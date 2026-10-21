@@ -30,10 +30,10 @@ def count(sql: str, expected: int, description: str) -> None:
     require_equal(query(sql), str(expected), description)
 
 
-def rejected(sql: str, description: str) -> None:
+def rejected(sql: str, description: str, *, error_code: int) -> None:
     result = execute(sql, check=False)
     output = (result.stdout + result.stderr).lower()
-    if result.returncode == 0 or "error" not in output:
+    if result.returncode == 0 or f"error {error_code} (" not in output:
         raise SmokeFailure(
             f"{description}: expected MariaDB constraint rejection, "
             f"returncode={result.returncode}, output={output[:600]}"
@@ -88,7 +88,7 @@ def run() -> None:
         "INSERT INTO recruitment_process_versions "
         "(id,community_id,process_id,version_number,created_by_user_id) "
         "VALUES (983099,981001,982002,1,981003)",
-        "cannot attach tenant B process to tenant A version",
+        "cannot attach tenant B process to tenant A version", error_code=1452,
     )
     execute(
         "INSERT INTO recruitment_process_versions "
@@ -102,7 +102,7 @@ def run() -> None:
         "(id,community_id,process_id,process_version_id,position,"
         "internal_name,public_name,stage_type) "
         "VALUES (984099,981001,982001,983002,1,'Bad','Bad','APPLICATION')",
-        "cannot connect stage with mismatched process/version tenant",
+        "cannot connect stage with mismatched process/version tenant", error_code=1452,
     )
     execute(
         "INSERT INTO recruitment_stages "
@@ -117,19 +117,19 @@ def run() -> None:
         "(id,community_id,process_id,version_number,created_by_user_id,"
         "eligibility_rules_json) "
         "VALUES (983099,981001,982001,3,981003,'{bad-json')",
-        "malformed version rules JSON is rejected",
+        "malformed version rules JSON is rejected", error_code=4025,
     )
     rejected(
         "INSERT INTO recruitment_applications "
         "(id,community_id,process_id,process_version_id,candidate_user_id) "
         "VALUES (985099,981001,982001,983001,981002)",
-        "candidate with only tenant B membership cannot apply in tenant A",
+        "candidate with only tenant B membership cannot apply in tenant A", error_code=1452,
     )
     rejected(
         "INSERT INTO recruitment_applications "
         "(id,community_id,process_id,process_version_id,candidate_user_id) "
         "VALUES (985099,981001,982001,983002,981001)",
-        "candidate cannot reference tenant B process version",
+        "candidate cannot reference tenant B process version", error_code=1452,
     )
     execute(
         "INSERT INTO recruitment_applications "
@@ -141,19 +141,19 @@ def run() -> None:
         "INSERT INTO recruitment_applications "
         "(id,community_id,process_id,process_version_id,candidate_user_id) "
         "VALUES (985099,981001,982001,983001,981001)",
-        "duplicate candidate application per process is rejected",
+        "duplicate candidate application per process is rejected", error_code=1062,
     )
     rejected(
         "INSERT INTO recruitment_application_stages "
         "(community_id,application_id,process_version_id,stage_id) "
         "VALUES (981001,985001,983001,984002)",
-        "tenant B stage cannot attach to tenant A application",
+        "tenant B stage cannot attach to tenant A application", error_code=1452,
     )
     rejected(
         "INSERT INTO recruitment_application_stages "
         "(community_id,application_id,process_version_id,stage_id) "
         "VALUES (981001,985001,983003,984003)",
-        "same-tenant wrong version stage cannot attach to existing application",
+        "same-tenant wrong version stage cannot attach to existing application", error_code=1452,
     )
     execute(
         "INSERT INTO recruitment_application_stages "
@@ -165,7 +165,7 @@ def run() -> None:
         "INSERT INTO recruitment_application_stages "
         "(community_id,application_id,process_version_id,stage_id) "
         "VALUES (981001,985001,983001,984001)",
-        "stage instance cannot be duplicated in an application",
+        "stage instance cannot be duplicated in an application", error_code=1062,
     )
     count(
         "SELECT COUNT(*) FROM recruitment_application_stages s "
