@@ -16,6 +16,7 @@ from smoke_test import (
 
 MIGRATION_VERSION = "20261021.001"
 REVISION_MIGRATION_VERSION = "20261022.001"
+APPLICATION_MIGRATION_VERSION = "20261022.002"
 
 
 def execute(sql: str, *, check: bool = True):
@@ -54,7 +55,7 @@ def run() -> None:
         "SELECT COUNT(*) FROM information_schema.TABLES "
         "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_TYPE='BASE TABLE' "
         "AND TABLE_NAME<>'flyway_schema_history'",
-        112, "107 canonical legacy tables + 5 recruitment foundation tables",
+        113, "107 canonical legacy + 5 recruitment foundation + 1 answers table",
     )
     count(
         "SELECT COUNT(*) FROM flyway_schema_history "
@@ -67,6 +68,11 @@ def run() -> None:
         1, "revision migration recorded exactly once",
     )
     count(
+        "SELECT COUNT(*) FROM flyway_schema_history "
+        f"WHERE success=1 AND version='{APPLICATION_MIGRATION_VERSION}'",
+        1, "candidate submission migration recorded exactly once",
+    )
+    count(
         "SELECT COUNT(*) FROM information_schema.COLUMNS "
         "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='recruitment_processes' "
         "AND COLUMN_NAME='draft_revision' AND DATA_TYPE='bigint' "
@@ -76,7 +82,7 @@ def run() -> None:
     count(
         "SELECT COUNT(*) FROM information_schema.REFERENTIAL_CONSTRAINTS "
         "WHERE CONSTRAINT_SCHEMA=DATABASE() AND TABLE_NAME LIKE 'recruitment_%'",
-        9, "all nine recruitment foreign keys exist",
+        10, "all ten recruitment foreign keys exist",
     )
 
     execute(
@@ -215,6 +221,46 @@ def run() -> None:
         "(community_id,application_id,process_version_id,stage_id) "
         "VALUES (981001,985001,983001,984001)",
         "stage instance cannot be duplicated in an application", error_code=1062,
+    )
+    count(
+        "SELECT COUNT(*) FROM information_schema.COLUMNS "
+        "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='recruitment_applications' "
+        "AND COLUMN_NAME IN ('terms_accepted_at','terms_sha256')",
+        2, "candidate consent audit columns present",
+    )
+    execute(
+        "UPDATE recruitment_applications "
+        "SET terms_accepted_at=UTC_TIMESTAMP(6),terms_sha256=REPEAT('a',64) "
+        "WHERE community_id=981001 AND id=985001"
+    )
+    rejected(
+        "INSERT INTO recruitment_application_answers "
+        "(community_id,application_id,stage_id,answers_json) "
+        "VALUES (981001,985001,984002,'{}')",
+        "answer cannot link to another tenant's stage", error_code=1452,
+    )
+    rejected(
+        "INSERT INTO recruitment_application_answers "
+        "(community_id,application_id,stage_id,answers_json) "
+        "VALUES (981002,985001,984001,'{}')",
+        "answer cannot link to another tenant's application", error_code=1452,
+    )
+    rejected(
+        "INSERT INTO recruitment_application_answers "
+        "(community_id,application_id,stage_id,answers_json) "
+        "VALUES (981001,985001,984001,'{invalid-json')",
+        "malformed answers JSON is rejected", error_code=4025,
+    )
+    execute(
+        "INSERT INTO recruitment_application_answers "
+        "(community_id,application_id,stage_id,answers_json) "
+        "VALUES (981001,985001,984001,'{}'),(981002,985002,984002,'{}')"
+    )
+    rejected(
+        "INSERT INTO recruitment_application_answers "
+        "(community_id,application_id,stage_id,answers_json) "
+        "VALUES (981001,985001,984001,'{}')",
+        "duplicate answers for the same application stage rejected", error_code=1062,
     )
     count(
         "SELECT COUNT(*) FROM recruitment_application_stages s "
