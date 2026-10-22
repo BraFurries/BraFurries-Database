@@ -15,6 +15,7 @@ from smoke_test import (
 )
 
 MIGRATION_VERSION = "20261021.001"
+REVISION_MIGRATION_VERSION = "20261022.001"
 
 
 def execute(sql: str, *, check: bool = True):
@@ -61,6 +62,18 @@ def run() -> None:
         1, "recruitment migration recorded exactly once",
     )
     count(
+        "SELECT COUNT(*) FROM flyway_schema_history "
+        f"WHERE success=1 AND version='{REVISION_MIGRATION_VERSION}'",
+        1, "revision migration recorded exactly once",
+    )
+    count(
+        "SELECT COUNT(*) FROM information_schema.COLUMNS "
+        "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='recruitment_processes' "
+        "AND COLUMN_NAME='draft_revision' AND DATA_TYPE='bigint' "
+        "AND IS_NULLABLE='NO'",
+        1, "process-scoped revision column created",
+    )
+    count(
         "SELECT COUNT(*) FROM information_schema.REFERENTIAL_CONSTRAINTS "
         "WHERE CONSTRAINT_SCHEMA=DATABASE() AND TABLE_NAME LIKE 'recruitment_%'",
         9, "all nine recruitment foreign keys exist",
@@ -83,6 +96,42 @@ def run() -> None:
         "INSERT INTO recruitment_processes (id,community_id,title,created_by_user_id) "
         "VALUES (982001,981001,'Process A',981003),"
         "(982002,981002,'Process B',981003)"
+    )
+    count(
+        "SELECT COUNT(*) FROM recruitment_processes "
+        "WHERE id IN (982001,982002) AND draft_revision=0",
+        2, "old and new draft rows default to zero revision",
+    )
+    count(
+        "SELECT COUNT(*) FROM recruitment_processes "
+        "WHERE community_id=981001 AND id=982001 AND status='DRAFT' "
+        "AND draft_revision=0",
+        1, "revision is tenant-scoped",
+    )
+    execute(
+        "UPDATE recruitment_processes SET draft_revision=draft_revision+1 "
+        "WHERE community_id=981001 AND id=982001 "
+        "AND status='DRAFT' AND draft_revision=0"
+    )
+    count(
+        "SELECT draft_revision FROM recruitment_processes "
+        "WHERE community_id=981001 AND id=982001",
+        1, "first writer advances revision atomically",
+    )
+    execute(
+        "UPDATE recruitment_processes SET draft_revision=draft_revision+1 "
+        "WHERE community_id=981001 AND id=982001 "
+        "AND status='DRAFT' AND draft_revision=0"
+    )
+    count(
+        "SELECT draft_revision FROM recruitment_processes "
+        "WHERE community_id=981001 AND id=982001",
+        1, "stale writer cannot advance revision",
+    )
+    count(
+        "SELECT draft_revision FROM recruitment_processes "
+        "WHERE community_id=981002 AND id=982002",
+        0, "second tenant unaffected",
     )
     rejected(
         "INSERT INTO recruitment_process_versions "
