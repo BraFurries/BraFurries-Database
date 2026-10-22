@@ -2,9 +2,7 @@
 -- Additive, no DML. Schema authority: BraFurries-Database. MariaDB 10.6.
 -- Existing review endpoints MUST become assignment-scoped before feature activation.
 
--- Allows a tenant-preserving FK from assignments to the existing Team roles.
-ALTER TABLE `community_team_roles`
-  ADD UNIQUE KEY `uq_ctrole_community_identity_review` (`community_id`, `id`);
+-- Reuses existing unique key uk_ctr_community_id_id on legacy Team roles.
 
 CREATE TABLE `recruitment_stage_reviewers` (
   `id` BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
