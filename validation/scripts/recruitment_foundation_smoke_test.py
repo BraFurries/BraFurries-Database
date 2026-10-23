@@ -22,6 +22,7 @@ DECISIONS_MIGRATION_VERSION = "20261022.004"
 VOTES_MIGRATION_VERSION = "20261023.001"
 ATTEMPTS_MIGRATION_VERSION = "20261023.002"
 GRADES_MIGRATION_VERSION = "20261023.003"
+OBJECTIVE_DECISIONS_VERSION = "20261023.004"
 
 
 def execute(sql: str, *, check: bool = True):
@@ -103,6 +104,11 @@ def run() -> None:
         1, "objective grading migration recorded",
     )
     count(
+        "SELECT COUNT(*) FROM flyway_schema_history "
+        f"WHERE success=1 AND version='{OBJECTIVE_DECISIONS_VERSION}'",
+        1, "objective stage finalization migration recorded",
+    )
+    count(
         "SELECT COUNT(*) FROM information_schema.COLUMNS "
         "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='recruitment_processes' "
         "AND COLUMN_NAME='draft_revision' AND DATA_TYPE='bigint' "
@@ -112,7 +118,7 @@ def run() -> None:
     count(
         "SELECT COUNT(*) FROM information_schema.REFERENTIAL_CONSTRAINTS "
         "WHERE CONSTRAINT_SCHEMA=DATABASE() AND TABLE_NAME LIKE 'recruitment_%'",
-        25, "all twenty-five recruitment foreign keys exist",
+        26, "all twenty-six recruitment foreign keys exist",
     )
 
     execute(
@@ -495,6 +501,33 @@ def run() -> None:
         "UPDATE recruitment_candidate_attempt_grades "
         "SET earned_points=11 WHERE community_id=981001",
         "earned score cannot exceed possible points", error_code=4025,
+    )
+    rejected(
+        "UPDATE recruitment_stage_decisions "
+        "SET objective_attempt_id=987654321 "
+        "WHERE community_id=981001 AND application_id=985001 AND stage_id=984001",
+        "manual decision cannot attach a missing objective attempt", error_code=1452,
+    )
+    rejected(
+        "UPDATE recruitment_stage_decisions "
+        "SET decision_source='MANUAL', objective_attempt_id=(SELECT id FROM "
+        "recruitment_candidate_attempts WHERE community_id=981001 "
+        "AND application_id=985001 AND stage_id=984001 LIMIT 1) "
+        "WHERE community_id=981001 AND application_id=985001 AND stage_id=984001",
+        "manual decision cannot reference an objective attempt", error_code=4025,
+    )
+    execute(
+        "UPDATE recruitment_stage_decisions "
+        "SET decision_source='OBJECTIVE_GRADE', objective_attempt_id=(SELECT id FROM "
+        "recruitment_candidate_attempts WHERE community_id=981001 "
+        "AND application_id=985001 AND stage_id=984001 LIMIT 1) "
+        "WHERE community_id=981001 AND application_id=985001 AND stage_id=984001"
+    )
+    count(
+        "SELECT COUNT(*) FROM recruitment_stage_decisions "
+        "WHERE community_id=981001 AND application_id=985001 "
+        "AND decision_source='OBJECTIVE_GRADE' AND objective_attempt_id IS NOT NULL",
+        1, "objective decision references real attempt from same Community and stage",
     )
     compose(
         "run", "--rm", "--no-deps", "flyway",
