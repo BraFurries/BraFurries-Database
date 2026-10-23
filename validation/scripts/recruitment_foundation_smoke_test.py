@@ -620,7 +620,9 @@ def run() -> None:
         "WHERE community_id=981001 AND application_id=985001 LIMIT 1",
         "reinstatement reason minimum length enforced", error_code=4025,
     )
+    # The audit default must be UTC even on a non-UTC SQL session.
     execute(
+        "SET time_zone='+03:00'; "
         "INSERT INTO recruitment_exam_reinstatements "
         "(community_id,attempt_id,application_id,stage_id,reviewed_by_user_id,"
         "reason,previous_focus_losses,expires_at) "
@@ -629,6 +631,12 @@ def run() -> None:
         "DATE_ADD(UTC_TIMESTAMP(6),INTERVAL 60 MINUTE) "
         "FROM recruitment_candidate_attempts "
         "WHERE community_id=981001 AND application_id=985001 LIMIT 1"
+    )
+    count(
+        "SELECT COUNT(*) FROM recruitment_exam_reinstatements "
+        "WHERE community_id=981001 "
+        "AND ABS(TIMESTAMPDIFF(SECOND,reinstated_at,UTC_TIMESTAMP(6)))<5",
+        1, "reinstatement audit remains UTC in non-UTC SQL sessions",
     )
     rejected(
         "INSERT INTO recruitment_exam_reinstatements "
