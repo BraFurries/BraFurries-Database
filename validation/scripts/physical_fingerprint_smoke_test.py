@@ -20,7 +20,7 @@ from smoke_test import (
     safety_preflight, start_empty_database,
 )
 
- PROBE_COLUMN = "__brf_fingerprint_synthetic_probe"
+PROBE_COLUMN = "__brf_fingerprint_synthetic_probe"
 
 
 def alter_on_disposable(sql: str) -> None:
