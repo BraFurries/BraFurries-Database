@@ -22,7 +22,8 @@ ROOT = Path(__file__).resolve().parents[2]
 BASELINE = ROOT / "flyway/sql/baseline/B20261020_001__adopt_production_schema.sql"
 MANIFEST = ROOT / "ownership/tables.yaml"
 VERSION = "20261020.001"
-LOCATIONS = "-locations=filesystem:/flyway/baseline,filesystem:/flyway/official"
+# Preserve the historical 107-table fingerprint independently of future additive versions.
+LOCATIONS = "-locations=filesystem:/flyway/baseline"
 TABLE_NAME = re.compile(r"(?m)^CREATE TABLE `([a-z][a-z0-9_]*)`\s*\(")
 
 

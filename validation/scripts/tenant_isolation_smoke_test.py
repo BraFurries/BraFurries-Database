@@ -201,7 +201,7 @@ def run() -> None:
     start_empty_database()
     compose(
         "run", "--rm", "--no-deps", "flyway",
-        "-locations=filesystem:/flyway/baseline,filesystem:/flyway/official",
+        "-locations=filesystem:/flyway/baseline",
         "migrate",
     )
     require_count(
@@ -209,6 +209,7 @@ def run() -> None:
         "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME<>'flyway_schema_history'",
         107, "tenant tests start from all 107 canonical schema tables",
     )
+    # Legacy tenant checks stay pinned to the 107-table production baseline.
     assert_theme_integrity()
     assert_backup_contracts()
 

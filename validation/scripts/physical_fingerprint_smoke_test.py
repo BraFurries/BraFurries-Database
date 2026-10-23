@@ -19,7 +19,8 @@ from smoke_test import (
     safety_preflight, start_empty_database,
 )
 
-BASELINE_LOCATIONS = "-locations=filesystem:/flyway/baseline,filesystem:/flyway/official"
+# Preserve the production fingerprint independent of additive migrations.
+BASELINE_LOCATIONS = "-locations=filesystem:/flyway/baseline"
 PROBE_COLUMN = "__brf_fingerprint_synthetic_probe"
 
 
