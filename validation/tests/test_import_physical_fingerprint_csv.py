@@ -108,8 +108,10 @@ class HeidiSqlFingerprintImportTests(unittest.TestCase):
                 MOD.load_csv(path)
 
     def test_readonly_sql_uses_metadata_sources_and_no_table_writes(self):
-        sql = (SCRIPTS.parent / "sql" / "physical_schema_readonly_capture.sql"
-               ).read_text(encoding="utf-8")
+        guide = (SCRIPTS.parents[1] / "docs" / "runbooks"
+                 / "heidisql-readonly-fingerprint-export.md"
+                 ).read_text(encoding="utf-8")
+        sql = guide.split("```sql\\n", 1)[1].split("\\n```", 1)[0]
         executable = "\n".join(line for line in sql.splitlines()
                                if not line.strip().startswith("--")).upper()
         self.assertIn("INFORMATION_SCHEMA.TABLES", executable)
