@@ -21,6 +21,7 @@ HUMAN_REVIEW_MIGRATION_VERSION = "20261022.003"
 DECISIONS_MIGRATION_VERSION = "20261022.004"
 VOTES_MIGRATION_VERSION = "20261023.001"
 ATTEMPTS_MIGRATION_VERSION = "20261023.002"
+GRADES_MIGRATION_VERSION = "20261023.003"
 
 
 def execute(sql: str, *, check: bool = True):
@@ -59,7 +60,7 @@ def run() -> None:
         "SELECT COUNT(*) FROM information_schema.TABLES "
         "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_TYPE='BASE TABLE' "
         "AND TABLE_NAME<>'flyway_schema_history'",
-        119, "107 legacy + foundation + answers + reviews + decisions + ballots + 2 attempts",
+        120, "107 legacy + foundation + answers + reviews + decisions + ballots + attempts + grades",
     )
     count(
         "SELECT COUNT(*) FROM flyway_schema_history "
@@ -97,6 +98,11 @@ def run() -> None:
         1, "candidate attempts migration recorded",
     )
     count(
+        "SELECT COUNT(*) FROM flyway_schema_history "
+        f"WHERE success=1 AND version='{GRADES_MIGRATION_VERSION}'",
+        1, "objective grading migration recorded",
+    )
+    count(
         "SELECT COUNT(*) FROM information_schema.COLUMNS "
         "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='recruitment_processes' "
         "AND COLUMN_NAME='draft_revision' AND DATA_TYPE='bigint' "
@@ -106,7 +112,7 @@ def run() -> None:
     count(
         "SELECT COUNT(*) FROM information_schema.REFERENTIAL_CONSTRAINTS "
         "WHERE CONSTRAINT_SCHEMA=DATABASE() AND TABLE_NAME LIKE 'recruitment_%'",
-        24, "all twenty-four recruitment foreign keys exist",
+        25, "all twenty-five recruitment foreign keys exist",
     )
 
     execute(
@@ -444,6 +450,51 @@ def run() -> None:
         "SELECT COUNT(*) FROM recruitment_candidate_attempts "
         "WHERE community_id=981001 AND application_id=985001 AND status='STARTED'",
         1, "candidate attempt is scoped",
+    )
+    rejected(
+        "UPDATE recruitment_stage_attempt_policies "
+        "SET passing_percentage=70.00 "
+        "WHERE community_id=981001 AND stage_id=984001",
+        "incomplete score policy cannot leave a bare cutoff", error_code=4025,
+    )
+    execute(
+        "UPDATE recruitment_stage_attempt_policies "
+        "SET passing_percentage=70.00,result_strategy='BEST' "
+        "WHERE community_id=981001 AND stage_id=984001"
+    )
+    rejected(
+        "UPDATE recruitment_stage_attempt_policies SET result_strategy='FIRST' "
+        "WHERE community_id=981001 AND stage_id=984001",
+        "unrecognized attempt strategy is rejected", error_code=4025,
+    )
+    rejected(
+        "INSERT INTO recruitment_candidate_attempt_grades "
+        "(community_id,attempt_id,earned_points,possible_points,"
+        "correct_questions,total_questions,passing_percentage,passed) "
+        "VALUES (981002,1,5,10,1,2,70.00,0)",
+        "grade cannot cross Community", error_code=1452,
+    )
+    execute(
+        "INSERT INTO recruitment_candidate_attempt_grades "
+        "(community_id,attempt_id,earned_points,possible_points,"
+        "correct_questions,total_questions,passing_percentage,passed) "
+        "SELECT community_id,id,8,10,1,2,70.00,1 "
+        "FROM recruitment_candidate_attempts "
+        "WHERE community_id=981001 AND application_id=985001 AND attempt_number=1"
+    )
+    rejected(
+        "INSERT INTO recruitment_candidate_attempt_grades "
+        "(community_id,attempt_id,earned_points,possible_points,"
+        "correct_questions,total_questions,passing_percentage,passed) "
+        "SELECT community_id,id,8,10,1,2,70.00,1 "
+        "FROM recruitment_candidate_attempts "
+        "WHERE community_id=981001 AND application_id=985001 AND attempt_number=1",
+        "attempt can be graded only once", error_code=1062,
+    )
+    rejected(
+        "UPDATE recruitment_candidate_attempt_grades "
+        "SET earned_points=11 WHERE community_id=981001",
+        "earned score cannot exceed possible points", error_code=4025,
     )
     compose(
         "run", "--rm", "--no-deps", "flyway",
