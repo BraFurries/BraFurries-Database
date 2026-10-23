@@ -27,6 +27,7 @@ SCORE_VISIBILITY_VERSION = "20261023.005"
 INTEGRITY_EVENTS_VERSION = "20261023.006"
 REINSTATEMENTS_VERSION = "20261023.007"
 AUTOSAVE_VERSION = "20261023.008"
+INCIDENT_NOTICES_VERSION = "20261023.009"
 
 
 def execute(sql: str, *, check: bool = True):
@@ -65,7 +66,7 @@ def run() -> None:
         "SELECT COUNT(*) FROM information_schema.TABLES "
         "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_TYPE='BASE TABLE' "
         "AND TABLE_NAME<>'flyway_schema_history'",
-        122, "107 legacy + foundation + answers + reviews + decisions + ballots + attempts + grades + integrity + reinstatements",
+        124, "107 legacy plus recruitment tables, notices and read receipts",
     )
     count(
         "SELECT COUNT(*) FROM flyway_schema_history "
@@ -139,6 +140,11 @@ def run() -> None:
         3, "candidate attempt draft fields exist",
     )
     count(
+        "SELECT COUNT(*) FROM flyway_schema_history "
+        f"WHERE success=1 AND version='{INCIDENT_NOTICES_VERSION}'",
+        1, "incident notice and receipt schema recorded",
+    )
+    count(
         "SELECT COUNT(*) FROM information_schema.COLUMNS "
         "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='recruitment_processes' "
         "AND COLUMN_NAME='draft_revision' AND DATA_TYPE='bigint' "
@@ -148,7 +154,7 @@ def run() -> None:
     count(
         "SELECT COUNT(*) FROM information_schema.REFERENTIAL_CONSTRAINTS "
         "WHERE CONSTRAINT_SCHEMA=DATABASE() AND TABLE_NAME LIKE 'recruitment_%'",
-        29, "all twenty-nine recruitment foreign keys exist",
+        32, "all recruitment foreign keys including notices and reads exist",
     )
 
     execute(
@@ -680,6 +686,32 @@ def run() -> None:
         "FROM recruitment_candidate_attempts "
         "WHERE community_id=981001 AND application_id=985001 LIMIT 1",
         "only one restoration per attempt", error_code=1062,
+    )
+    execute(
+        "INSERT INTO recruitment_exam_incident_notices "
+        "(community_id,application_id,stage_id,attempt_id,event_type) "
+        "SELECT community_id,application_id,stage_id,id,'BLOCKED' "
+        "FROM recruitment_candidate_attempts "
+        "WHERE community_id=981001 AND application_id=985001 LIMIT 1"
+    )
+    rejected(
+        "INSERT INTO recruitment_exam_incident_notices "
+        "(community_id,application_id,stage_id,attempt_id,event_type) "
+        "SELECT 981002,application_id,stage_id,id,'BLOCKED' "
+        "FROM recruitment_candidate_attempts "
+        "WHERE community_id=981001 AND application_id=985001 LIMIT 1",
+        "cross-Community notice forbidden", error_code=1452,
+    )
+    execute(
+        "INSERT INTO recruitment_exam_notice_reads (community_id,notice_id,user_id) "
+        "SELECT community_id,id,981001 FROM recruitment_exam_incident_notices "
+        "WHERE community_id=981001 LIMIT 1"
+    )
+    rejected(
+        "INSERT INTO recruitment_exam_notice_reads (community_id,notice_id,user_id) "
+        "SELECT 981002,id,981003 FROM recruitment_exam_incident_notices "
+        "WHERE community_id=981001 LIMIT 1",
+        "cross-Community acknowledgement forbidden", error_code=1452,
     )
     compose(
         "run", "--rm", "--no-deps", "flyway",
