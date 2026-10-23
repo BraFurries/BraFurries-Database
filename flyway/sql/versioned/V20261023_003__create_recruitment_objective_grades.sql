@@ -5,7 +5,8 @@ ALTER TABLE `recruitment_stage_attempt_policies`
   ADD COLUMN `result_strategy` VARCHAR(12) NULL,
   ADD CONSTRAINT `ck_rsap_grade_pair` CHECK (
     (`passing_percentage` IS NULL AND `result_strategy` IS NULL)
-    OR (`passing_percentage` BETWEEN 1.00 AND 100.00
+    OR (`passing_percentage` IS NOT NULL AND `result_strategy` IS NOT NULL
+        AND `passing_percentage` BETWEEN 1.00 AND 100.00
         AND `result_strategy` IN ('BEST','LAST'))
   );
 
