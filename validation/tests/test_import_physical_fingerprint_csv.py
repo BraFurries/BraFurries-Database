@@ -111,7 +111,7 @@ class HeidiSqlFingerprintImportTests(unittest.TestCase):
         guide = (SCRIPTS.parents[1] / "docs" / "runbooks"
                  / "heidisql-readonly-fingerprint-export.md"
                  ).read_text(encoding="utf-8")
-        sql = guide.split("```sql\\n", 1)[1].split("\\n```", 1)[0]
+        sql = guide.split("```sql\n", 1)[1].split("\n```", 1)[0]
         executable = "\n".join(line for line in sql.splitlines()
                                if not line.strip().startswith("--")).upper()
         self.assertIn("INFORMATION_SCHEMA.TABLES", executable)
