@@ -19,6 +19,7 @@ REVISION_MIGRATION_VERSION = "20261022.001"
 APPLICATION_MIGRATION_VERSION = "20261022.002"
 HUMAN_REVIEW_MIGRATION_VERSION = "20261022.003"
 DECISIONS_MIGRATION_VERSION = "20261022.004"
+VOTES_MIGRATION_VERSION = "20261023.001"
 
 
 def execute(sql: str, *, check: bool = True):
@@ -57,7 +58,7 @@ def run() -> None:
         "SELECT COUNT(*) FROM information_schema.TABLES "
         "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_TYPE='BASE TABLE' "
         "AND TABLE_NAME<>'flyway_schema_history'",
-        116, "107 legacy + 5 foundation + answers + 2 human-review + decisions",
+        117, "107 legacy + foundation + answers + reviews + decisions + ballots",
     )
     count(
         "SELECT COUNT(*) FROM flyway_schema_history "
@@ -85,6 +86,11 @@ def run() -> None:
         1, "stage-decision migration recorded",
     )
     count(
+        "SELECT COUNT(*) FROM flyway_schema_history "
+        f"WHERE success=1 AND version='{VOTES_MIGRATION_VERSION}'",
+        1, "collective ballots migration recorded",
+    )
+    count(
         "SELECT COUNT(*) FROM information_schema.COLUMNS "
         "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='recruitment_processes' "
         "AND COLUMN_NAME='draft_revision' AND DATA_TYPE='bigint' "
@@ -94,7 +100,7 @@ def run() -> None:
     count(
         "SELECT COUNT(*) FROM information_schema.REFERENTIAL_CONSTRAINTS "
         "WHERE CONSTRAINT_SCHEMA=DATABASE() AND TABLE_NAME LIKE 'recruitment_%'",
-        18, "all eighteen recruitment foreign keys exist",
+        20, "all twenty recruitment foreign keys exist",
     )
 
     execute(
@@ -320,6 +326,41 @@ def run() -> None:
         "(community_id,application_id,stage_id,evaluator_user_id,score) "
         "VALUES (981001,985001,984001,981001,120)",
         "out-of-range assessment score denied", error_code=4025,
+    )
+    rejected(
+        "INSERT INTO recruitment_stage_votes "
+        "(community_id,application_id,stage_id,voter_user_id,choice) "
+        "VALUES (981002,985001,984001,981001,'APPROVE')",
+        "ballot cannot cross Community boundaries", error_code=1452,
+    )
+    rejected(
+        "INSERT INTO recruitment_stage_votes "
+        "(community_id,application_id,stage_id,voter_user_id,choice) "
+        "VALUES (981001,985001,984001,981003,'APPROVE')",
+        "ballot requires an assessment by the same voter", error_code=1452,
+    )
+    execute(
+        "INSERT INTO recruitment_stage_votes "
+        "(community_id,application_id,stage_id,voter_user_id,choice) "
+        "VALUES (981001,985001,984001,981001,'APPROVE')"
+    )
+    rejected(
+        "INSERT INTO recruitment_stage_votes "
+        "(community_id,application_id,stage_id,voter_user_id,choice) "
+        "VALUES (981001,985001,984001,981001,'REJECT')",
+        "voter cannot vote twice", error_code=1062,
+    )
+    rejected(
+        "INSERT INTO recruitment_stage_votes "
+        "(community_id,application_id,stage_id,voter_user_id,choice) "
+        "VALUES (981001,985001,984001,981001,'ABSTAIN')",
+        "unsupported ballot choice is rejected", error_code=1062,
+    )
+    count(
+        "SELECT COUNT(*) FROM information_schema.COLUMNS "
+        "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='recruitment_stage_decisions' "
+        "AND COLUMN_NAME='decision_source' AND COLUMN_DEFAULT='MANUAL'",
+        1, "existing manual decisions retain the default source",
     )
     execute(
         "INSERT INTO recruitment_stage_decisions "
