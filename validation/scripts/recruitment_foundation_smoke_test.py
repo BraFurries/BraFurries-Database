@@ -602,9 +602,9 @@ def run() -> None:
     rejected(
         "INSERT INTO recruitment_exam_reinstatements "
         "(community_id,attempt_id,application_id,stage_id,reviewed_by_user_id,"
-        "reason,previous_focus_losses,expires_at) "
+        "reason,previous_focus_losses,original_started_at,original_expires_at,expires_at) "
         "SELECT 981002,id,application_id,stage_id,981002,"
-        "'Erro de perda de foco reconhecido e documentado',3,"
+        "'Erro de perda de foco reconhecido e documentado',3,started_at,expires_at,"
         "DATE_ADD(UTC_TIMESTAMP(6),INTERVAL 60 MINUTE) "
         "FROM recruitment_candidate_attempts "
         "WHERE community_id=981001 AND application_id=985001 LIMIT 1",
@@ -613,9 +613,9 @@ def run() -> None:
     rejected(
         "INSERT INTO recruitment_exam_reinstatements "
         "(community_id,attempt_id,application_id,stage_id,reviewed_by_user_id,"
-        "reason,previous_focus_losses,expires_at) "
+        "reason,previous_focus_losses,original_started_at,original_expires_at,expires_at) "
         "SELECT community_id,id,application_id,stage_id,981003,"
-        "'curto',3,DATE_ADD(UTC_TIMESTAMP(6),INTERVAL 60 MINUTE) "
+        "'curto',3,started_at,expires_at,DATE_ADD(UTC_TIMESTAMP(6),INTERVAL 60 MINUTE) "
         "FROM recruitment_candidate_attempts "
         "WHERE community_id=981001 AND application_id=985001 LIMIT 1",
         "reinstatement reason minimum length enforced", error_code=4025,
@@ -625,9 +625,9 @@ def run() -> None:
         "SET time_zone='+03:00'; "
         "INSERT INTO recruitment_exam_reinstatements "
         "(community_id,attempt_id,application_id,stage_id,reviewed_by_user_id,"
-        "reason,previous_focus_losses,expires_at) "
+        "reason,previous_focus_losses,original_started_at,original_expires_at,expires_at) "
         "SELECT community_id,id,application_id,stage_id,981003,"
-        "'Perda de foco causada por um alerta do sistema',3,"
+        "'Perda de foco causada por um alerta do sistema',3,started_at,expires_at,"
         "DATE_ADD(UTC_TIMESTAMP(6),INTERVAL 60 MINUTE) "
         "FROM recruitment_candidate_attempts "
         "WHERE community_id=981001 AND application_id=985001 LIMIT 1"
@@ -638,12 +638,21 @@ def run() -> None:
         "AND ABS(TIMESTAMPDIFF(SECOND,reinstated_at,UTC_TIMESTAMP(6)))<5",
         1, "reinstatement audit remains UTC in non-UTC SQL sessions",
     )
+    count(
+        "SELECT COUNT(*) FROM recruitment_exam_reinstatements r "
+        "JOIN recruitment_candidate_attempts a ON a.community_id=r.community_id "
+        "AND a.id=r.attempt_id "
+        "WHERE r.community_id=981001 "
+        "AND r.original_started_at=a.started_at "
+        "AND r.original_expires_at=a.expires_at",
+        1, "original attempt timing is captured for later audit",
+    )
     rejected(
         "INSERT INTO recruitment_exam_reinstatements "
         "(community_id,attempt_id,application_id,stage_id,reviewed_by_user_id,"
-        "reason,previous_focus_losses,expires_at) "
+        "reason,previous_focus_losses,original_started_at,original_expires_at,expires_at) "
         "SELECT community_id,id,application_id,stage_id,981003,"
-        "'Duplicação não autorizada da liberação administrativa',3,"
+        "'Duplicação não autorizada da liberação administrativa',3,started_at,expires_at,"
         "DATE_ADD(UTC_TIMESTAMP(6),INTERVAL 60 MINUTE) "
         "FROM recruitment_candidate_attempts "
         "WHERE community_id=981001 AND application_id=985001 LIMIT 1",
