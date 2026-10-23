@@ -504,7 +504,7 @@ def run() -> None:
     )
     rejected(
         "UPDATE recruitment_stage_decisions "
-        "SET objective_attempt_id=987654321 "
+        "SET decision_source='OBJECTIVE_GRADE', objective_attempt_id=987654321 "
         "WHERE community_id=981001 AND application_id=985001 AND stage_id=984001",
         "manual decision cannot attach a missing objective attempt", error_code=1452,
     )
