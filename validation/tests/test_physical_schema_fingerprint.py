@@ -37,6 +37,10 @@ def example():
 
 
 class FingerprintTests(unittest.TestCase):
+    def test_pre_recruitment_reference_never_applies_newer_versions(self):
+        self.assertEqual(F.BASELINE_VERSION, "20261020.001")
+        self.assertIn("-target=20261020.001", F.BASELINE_MIGRATE_OPTIONS)
+        self.assertEqual(len(F.BASELINE_MIGRATE_OPTIONS), 2)
     def test_environment_version_not_hashed(self):
         baseline = example()
         observed = example()
