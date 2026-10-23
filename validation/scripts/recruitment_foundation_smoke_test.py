@@ -20,6 +20,7 @@ APPLICATION_MIGRATION_VERSION = "20261022.002"
 HUMAN_REVIEW_MIGRATION_VERSION = "20261022.003"
 DECISIONS_MIGRATION_VERSION = "20261022.004"
 VOTES_MIGRATION_VERSION = "20261023.001"
+ATTEMPTS_MIGRATION_VERSION = "20261023.002"
 
 
 def execute(sql: str, *, check: bool = True):
@@ -58,7 +59,7 @@ def run() -> None:
         "SELECT COUNT(*) FROM information_schema.TABLES "
         "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_TYPE='BASE TABLE' "
         "AND TABLE_NAME<>'flyway_schema_history'",
-        117, "107 legacy + foundation + answers + reviews + decisions + ballots",
+        119, "107 legacy + foundation + answers + reviews + decisions + ballots + 2 attempts",
     )
     count(
         "SELECT COUNT(*) FROM flyway_schema_history "
@@ -91,6 +92,11 @@ def run() -> None:
         1, "collective ballots migration recorded",
     )
     count(
+        "SELECT COUNT(*) FROM flyway_schema_history "
+        f"WHERE success=1 AND version='{ATTEMPTS_MIGRATION_VERSION}'",
+        1, "candidate attempts migration recorded",
+    )
+    count(
         "SELECT COUNT(*) FROM information_schema.COLUMNS "
         "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='recruitment_processes' "
         "AND COLUMN_NAME='draft_revision' AND DATA_TYPE='bigint' "
@@ -100,7 +106,7 @@ def run() -> None:
     count(
         "SELECT COUNT(*) FROM information_schema.REFERENTIAL_CONSTRAINTS "
         "WHERE CONSTRAINT_SCHEMA=DATABASE() AND TABLE_NAME LIKE 'recruitment_%'",
-        20, "all twenty recruitment foreign keys exist",
+        24, "all twenty-four recruitment foreign keys exist",
     )
 
     execute(
@@ -389,6 +395,55 @@ def run() -> None:
         "(community_id,application_id,stage_id,decided_by_user_id,outcome) "
         "VALUES (981002,985002,984002,981002,'REJECT')",
         "rejected stage must have a reason", error_code=4025,
+    )
+    execute(
+        "INSERT INTO recruitment_stage_attempt_policies "
+        "(community_id,process_version_id,stage_id,max_attempts,"
+        "time_limit_seconds,hard_deadline) "
+        "VALUES (981001,983001,984001,2,1800,1)"
+    )
+    rejected(
+        "INSERT INTO recruitment_stage_attempt_policies "
+        "(community_id,process_version_id,stage_id,max_attempts,time_limit_seconds) "
+        "VALUES (981001,983002,984002,2,1800)",
+        "tenant A cannot configure tenant B stage policy", error_code=1452,
+    )
+    rejected(
+        "INSERT INTO recruitment_candidate_attempts "
+        "(community_id,application_id,process_version_id,stage_id,"
+        "attempt_number,expires_at) VALUES "
+        "(981002,985001,983001,984001,1,DATE_ADD(UTC_TIMESTAMP(6),INTERVAL 30 MINUTE))",
+        "attempt cannot cross Community", error_code=1452,
+    )
+    execute(
+        "INSERT INTO recruitment_candidate_attempts "
+        "(community_id,application_id,process_version_id,stage_id,"
+        "attempt_number,expires_at) VALUES "
+        "(981001,985001,983001,984001,1,DATE_ADD(UTC_TIMESTAMP(6),INTERVAL 30 MINUTE))"
+    )
+    rejected(
+        "INSERT INTO recruitment_candidate_attempts "
+        "(community_id,application_id,process_version_id,stage_id,"
+        "attempt_number,expires_at) VALUES "
+        "(981001,985001,983001,984001,1,DATE_ADD(UTC_TIMESTAMP(6),INTERVAL 30 MINUTE))",
+        "reusing attempt number is forbidden", error_code=1062,
+    )
+    rejected(
+        "INSERT INTO recruitment_candidate_attempts "
+        "(community_id,application_id,process_version_id,stage_id,"
+        "attempt_number,expires_at,status) VALUES "
+        "(981001,985001,983001,984001,2,DATE_ADD(UTC_TIMESTAMP(6),INTERVAL 30 MINUTE),'SUBMITTED')",
+        "submitted attempts must have submitted timestamp and JSON", error_code=4025,
+    )
+    rejected(
+        "UPDATE recruitment_candidate_attempts SET answers_json='{broken' "
+        "WHERE community_id=981001 AND application_id=985001 AND attempt_number=1",
+        "invalid answer JSON rejected", error_code=4025,
+    )
+    count(
+        "SELECT COUNT(*) FROM recruitment_candidate_attempts "
+        "WHERE community_id=981001 AND application_id=985001 AND status='STARTED'",
+        1, "candidate attempt is scoped",
     )
     compose(
         "run", "--rm", "--no-deps", "flyway",
