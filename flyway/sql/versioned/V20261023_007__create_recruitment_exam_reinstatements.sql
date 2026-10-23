@@ -8,6 +8,8 @@ CREATE TABLE `recruitment_exam_reinstatements` (
   `reviewed_by_user_id` INT(11) NOT NULL,
   `reason` VARCHAR(2000) NOT NULL,
   `previous_focus_losses` TINYINT UNSIGNED NOT NULL,
+  `original_started_at` DATETIME(6) NOT NULL,
+  `original_expires_at` DATETIME(6) NOT NULL,
   `reinstated_at` DATETIME(6) NOT NULL DEFAULT (UTC_TIMESTAMP(6)),
   `expires_at` DATETIME(6) NOT NULL,
   PRIMARY KEY (`community_id`,`attempt_id`),
@@ -26,5 +28,7 @@ CREATE TABLE `recruitment_exam_reinstatements` (
     (CHAR_LENGTH(TRIM(`reason`)) BETWEEN 20 AND 2000),
   CONSTRAINT `ck_rer_previous_focus` CHECK
     (`previous_focus_losses` BETWEEN 1 AND 10),
+  CONSTRAINT `ck_rer_original_window` CHECK
+    (`original_expires_at` > `original_started_at`),
   CONSTRAINT `ck_rer_expiry` CHECK (`expires_at` > `reinstated_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
