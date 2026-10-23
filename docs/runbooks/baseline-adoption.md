@@ -71,7 +71,13 @@ or connect this repository's disposable Compose harness to the live database.
 
 The exact five SELECT-only queries and one environment query are maintained
 in `validation/scripts/physical_schema_fingerprint.py` under `QUERIES` and
-`ENVIRONMENT_QUERY`. All five read `information_schema` with the selected
+`ENVIRONMENT_QUERY`.
+
+For HeidiSQL operators, an optional [single-query metadata export and offline
+CSV importer](heidisql-readonly-fingerprint-export.md) produces the exact same
+five-section JSON contract without entering connection credentials into the
+repository. This shortcut does **not** waive read-only account restrictions,
+completeness checks or the separate backup-restore gate. All five read `information_schema` with the selected
 `DATABASE()` scope. **Do not execute the Python capture-disposable adapter
 against production or modify it to accept live connection details.**
 
