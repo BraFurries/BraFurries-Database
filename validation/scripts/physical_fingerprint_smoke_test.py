@@ -57,7 +57,7 @@ def run_smoke() -> None:
 
         guide = (REPOSITORY_ROOT / "docs" / "runbooks"
                  / "heidisql-readonly-fingerprint-export.md").read_text(encoding="utf-8")
-        metadata_query = guide.split("```sql\\n", 1)[1].split("\\n```", 1)[0]
+        metadata_query = guide.split("```sql\n", 1)[1].split("\n```", 1)[0]
         command = [
             *COMPOSE_COMMAND, "exec", "--no-TTY", "mariadb", "mariadb",
             "--host=127.0.0.1", f"--user={DATABASE_USER}",
