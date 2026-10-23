@@ -8,7 +8,7 @@ CREATE TABLE `recruitment_exam_reinstatements` (
   `reviewed_by_user_id` INT(11) NOT NULL,
   `reason` VARCHAR(2000) NOT NULL,
   `previous_focus_losses` TINYINT UNSIGNED NOT NULL,
-  `reinstated_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  `reinstated_at` DATETIME(6) NOT NULL DEFAULT (UTC_TIMESTAMP(6)),
   `expires_at` DATETIME(6) NOT NULL,
   PRIMARY KEY (`community_id`,`attempt_id`),
   KEY `fk_rer_attempt`
