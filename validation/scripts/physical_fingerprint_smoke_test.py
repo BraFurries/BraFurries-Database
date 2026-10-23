@@ -70,7 +70,7 @@ def run_smoke() -> None:
             writer = csv.writer(output)
             writer.writerow(("section", "metadata"))
             for line in result.stdout.splitlines():
-                section, separator, metadata = line.partition("\\t")
+                section, separator, metadata = line.partition("\t")
                 if not separator:
                     raise SmokeFailure("disposable HeidiSQL query returned malformed two-column row")
                 writer.writerow((section, metadata))
