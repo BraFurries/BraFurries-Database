@@ -25,6 +25,7 @@ GRADES_MIGRATION_VERSION = "20261023.003"
 OBJECTIVE_DECISIONS_VERSION = "20261023.004"
 SCORE_VISIBILITY_VERSION = "20261023.005"
 INTEGRITY_EVENTS_VERSION = "20261023.006"
+REINSTATEMENTS_VERSION = "20261023.007"
 
 
 def execute(sql: str, *, check: bool = True):
@@ -63,7 +64,7 @@ def run() -> None:
         "SELECT COUNT(*) FROM information_schema.TABLES "
         "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_TYPE='BASE TABLE' "
         "AND TABLE_NAME<>'flyway_schema_history'",
-        121, "107 legacy + foundation + answers + reviews + decisions + ballots + attempts + grades + integrity events",
+        122, "107 legacy + foundation + answers + reviews + decisions + ballots + attempts + grades + integrity + reinstatements",
     )
     count(
         "SELECT COUNT(*) FROM flyway_schema_history "
@@ -121,6 +122,11 @@ def run() -> None:
         1, "exam integrity events migration recorded",
     )
     count(
+        "SELECT COUNT(*) FROM flyway_schema_history "
+        f"WHERE success=1 AND version='{REINSTATEMENTS_VERSION}'",
+        1, "reinstatement migration recorded",
+    )
+    count(
         "SELECT COUNT(*) FROM information_schema.COLUMNS "
         "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='recruitment_processes' "
         "AND COLUMN_NAME='draft_revision' AND DATA_TYPE='bigint' "
@@ -130,7 +136,7 @@ def run() -> None:
     count(
         "SELECT COUNT(*) FROM information_schema.REFERENTIAL_CONSTRAINTS "
         "WHERE CONSTRAINT_SCHEMA=DATABASE() AND TABLE_NAME LIKE 'recruitment_%'",
-        27, "all twenty-seven recruitment foreign keys exist",
+        29, "all twenty-nine recruitment foreign keys exist",
     )
 
     execute(
@@ -588,6 +594,48 @@ def run() -> None:
         "'FOCUS_LOST','COPY' FROM recruitment_candidate_attempts "
         "WHERE community_id=981001 AND application_id=985001 LIMIT 1",
         "focus event source must match its type", error_code=4025,
+    )
+    rejected(
+        "INSERT INTO recruitment_exam_reinstatements "
+        "(community_id,attempt_id,application_id,stage_id,reviewed_by_user_id,"
+        "reason,previous_focus_losses,expires_at) "
+        "SELECT 981002,id,application_id,stage_id,981003,"
+        "'Erro de perda de foco reconhecido e documentado',3,"
+        "DATE_ADD(UTC_TIMESTAMP(6),INTERVAL 60 MINUTE) "
+        "FROM recruitment_candidate_attempts "
+        "WHERE community_id=981001 AND application_id=985001 LIMIT 1",
+        "reinstatement cannot cross Community FK", error_code=1452,
+    )
+    rejected(
+        "INSERT INTO recruitment_exam_reinstatements "
+        "(community_id,attempt_id,application_id,stage_id,reviewed_by_user_id,"
+        "reason,previous_focus_losses,expires_at) "
+        "SELECT community_id,id,application_id,stage_id,981003,"
+        "'curto',3,DATE_ADD(UTC_TIMESTAMP(6),INTERVAL 60 MINUTE) "
+        "FROM recruitment_candidate_attempts "
+        "WHERE community_id=981001 AND application_id=985001 LIMIT 1",
+        "reinstatement reason minimum length enforced", error_code=4025,
+    )
+    execute(
+        "INSERT INTO recruitment_exam_reinstatements "
+        "(community_id,attempt_id,application_id,stage_id,reviewed_by_user_id,"
+        "reason,previous_focus_losses,expires_at) "
+        "SELECT community_id,id,application_id,stage_id,981003,"
+        "'Perda de foco causada por um alerta do sistema',3,"
+        "DATE_ADD(UTC_TIMESTAMP(6),INTERVAL 60 MINUTE) "
+        "FROM recruitment_candidate_attempts "
+        "WHERE community_id=981001 AND application_id=985001 LIMIT 1"
+    )
+    rejected(
+        "INSERT INTO recruitment_exam_reinstatements "
+        "(community_id,attempt_id,application_id,stage_id,reviewed_by_user_id,"
+        "reason,previous_focus_losses,expires_at) "
+        "SELECT community_id,id,application_id,stage_id,981003,"
+        "'Duplicação não autorizada da liberação administrativa',3,"
+        "DATE_ADD(UTC_TIMESTAMP(6),INTERVAL 60 MINUTE) "
+        "FROM recruitment_candidate_attempts "
+        "WHERE community_id=981001 AND application_id=985001 LIMIT 1",
+        "only one restoration per attempt", error_code=1062,
     )
     compose(
         "run", "--rm", "--no-deps", "flyway",
