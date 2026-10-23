@@ -595,11 +595,15 @@ def run() -> None:
         "WHERE community_id=981001 AND application_id=985001 LIMIT 1",
         "focus event source must match its type", error_code=4025,
     )
+    execute(
+        "INSERT INTO user_community_status (community_id,user_id,member_since) "
+        "VALUES (981001,981003,UTC_TIMESTAMP())"
+    )
     rejected(
         "INSERT INTO recruitment_exam_reinstatements "
         "(community_id,attempt_id,application_id,stage_id,reviewed_by_user_id,"
         "reason,previous_focus_losses,expires_at) "
-        "SELECT 981002,id,application_id,stage_id,981003,"
+        "SELECT 981002,id,application_id,stage_id,981002,"
         "'Erro de perda de foco reconhecido e documentado',3,"
         "DATE_ADD(UTC_TIMESTAMP(6),INTERVAL 60 MINUTE) "
         "FROM recruitment_candidate_attempts "
