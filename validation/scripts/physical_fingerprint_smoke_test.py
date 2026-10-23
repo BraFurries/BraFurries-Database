@@ -2,11 +2,14 @@
 """Verify MariaDB physical-schema fingerprint catches drift (disposable only)."""
 from __future__ import annotations
 
+import csv
 import sys
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
+from import_physical_fingerprint_csv import load_csv
 from physical_schema_fingerprint import (
+    BASELINE_MIGRATE_OPTIONS,
     capture_disposable,
     compare_files,
     diffs,
@@ -15,12 +18,12 @@ from physical_schema_fingerprint import (
 )
 from smoke_test import (
     SmokeFailure, DATABASE_NAME, DATABASE_PASSWORD, DATABASE_USER,
+    COMPOSE_COMMAND, REPOSITORY_ROOT, run_command,
     assert_no_resources_remain, compose, down, query, require_equal,
     safety_preflight, start_empty_database,
 )
 
-# Preserve the production fingerprint independent of additive migrations.
-BASELINE_LOCATIONS = "-locations=filesystem:/flyway/baseline"
+# Baseline target and locations are shared with offline reference capture.
 PROBE_COLUMN = "__brf_fingerprint_synthetic_probe"
 
 
@@ -36,7 +39,7 @@ def alter_on_disposable(sql: str) -> None:
 def run_smoke() -> None:
     down()
     start_empty_database()
-    compose("run", "--rm", "--no-deps", "flyway", BASELINE_LOCATIONS, "migrate")
+    compose("run", "--rm", "--no-deps", "flyway", *BASELINE_MIGRATE_OPTIONS, "migrate")
 
     pristine = capture_disposable()
     structure = normalize(pristine)["sections"]
@@ -51,6 +54,33 @@ def run_smoke() -> None:
     with TemporaryDirectory(prefix="brf_schema_disposable_") as directory:
         expected = Path(directory) / "expected.json"
         observed = Path(directory) / "observed.json"
+        csv_export = Path(directory) / "heidisql-export.csv"
+
+        guide = (REPOSITORY_ROOT / "docs" / "runbooks"
+                 / "heidisql-readonly-fingerprint-export.md").read_text(encoding="utf-8")
+        metadata_query = guide.split("```sql\n", 1)[1].split("\n```", 1)[0]
+        command = [
+            *COMPOSE_COMMAND, "exec", "--no-TTY", "mariadb", "mariadb",
+            "--host=127.0.0.1", f"--user={DATABASE_USER}",
+            f"--password={DATABASE_PASSWORD}", f"--database={DATABASE_NAME}",
+            "--batch", "--raw", "--skip-column-names",
+            "--execute=" + metadata_query,
+        ]
+        result = run_command(command, show_output=False)
+        with csv_export.open("w", encoding="utf-8", newline="") as output:
+            writer = csv.writer(output)
+            writer.writerow(("section", "metadata"))
+            for line in result.stdout.splitlines():
+                section, separator, metadata = line.partition("\t")
+                if not separator:
+                    raise SmokeFailure("disposable HeidiSQL query returned malformed two-column row")
+                writer.writerow((section, metadata))
+        imported = load_csv(csv_export)
+        require_equal(
+            fingerprint(imported), fingerprint(pristine),
+            "single-query metadata CSV matches canonical physical fingerprint",
+        )
+
         import json
         expected.write_text(json.dumps(pristine, ensure_ascii=False), encoding="utf-8")
         observed.write_text(json.dumps(capture_disposable(), ensure_ascii=False), encoding="utf-8")

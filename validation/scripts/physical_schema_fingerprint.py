@@ -15,6 +15,13 @@ from typing import Any
 
 FORMAT = "brafurries-mariadb-physical-schema-v1"
 SECTIONS = ("tables", "columns", "indexes", "foreign_keys", "checks")
+# A fingerprint of the pre-recruitment production schema must not include
+# post-baseline V migrations when new features are added to this repository.
+BASELINE_VERSION = "20261020.001"
+BASELINE_MIGRATE_OPTIONS = (
+    "-locations=filesystem:/flyway/baseline,filesystem:/flyway/official",
+    f"-target={BASELINE_VERSION}",
+)
 KEYS = {
     "tables": ("table",),
     "columns": ("table", "column"),
@@ -235,7 +242,7 @@ def main() -> int:
             start_empty_database()
             compose(
                 "run", "--rm", "--no-deps", "flyway",
-                "-locations=filesystem:/flyway/baseline,filesystem:/flyway/official",
+                *BASELINE_MIGRATE_OPTIONS,
                 "migrate",
             )
             snapshot = capture_disposable()
