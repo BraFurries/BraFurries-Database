@@ -24,6 +24,7 @@ ATTEMPTS_MIGRATION_VERSION = "20261023.002"
 GRADES_MIGRATION_VERSION = "20261023.003"
 OBJECTIVE_DECISIONS_VERSION = "20261023.004"
 SCORE_VISIBILITY_VERSION = "20261023.005"
+INTEGRITY_EVENTS_VERSION = "20261023.006"
 
 
 def execute(sql: str, *, check: bool = True):
@@ -62,7 +63,7 @@ def run() -> None:
         "SELECT COUNT(*) FROM information_schema.TABLES "
         "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_TYPE='BASE TABLE' "
         "AND TABLE_NAME<>'flyway_schema_history'",
-        120, "107 legacy + foundation + answers + reviews + decisions + ballots + attempts + grades",
+        121, "107 legacy + foundation + answers + reviews + decisions + ballots + attempts + grades + integrity events",
     )
     count(
         "SELECT COUNT(*) FROM flyway_schema_history "
@@ -115,6 +116,11 @@ def run() -> None:
         1, "exam score visibility migration recorded",
     )
     count(
+        "SELECT COUNT(*) FROM flyway_schema_history "
+        f"WHERE success=1 AND version='{INTEGRITY_EVENTS_VERSION}'",
+        1, "exam integrity events migration recorded",
+    )
+    count(
         "SELECT COUNT(*) FROM information_schema.COLUMNS "
         "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='recruitment_processes' "
         "AND COLUMN_NAME='draft_revision' AND DATA_TYPE='bigint' "
@@ -124,7 +130,7 @@ def run() -> None:
     count(
         "SELECT COUNT(*) FROM information_schema.REFERENTIAL_CONSTRAINTS "
         "WHERE CONSTRAINT_SCHEMA=DATABASE() AND TABLE_NAME LIKE 'recruitment_%'",
-        26, "all twenty-six recruitment foreign keys exist",
+        27, "all twenty-seven recruitment foreign keys exist",
     )
 
     execute(
@@ -551,6 +557,37 @@ def run() -> None:
         "WHERE community_id=981001 AND stage_id=984001",
         "final result cannot be exposed through exam-grade visibility",
         error_code=4025,
+    )
+    rejected(
+        "INSERT INTO recruitment_exam_integrity_events "
+        "(community_id,attempt_id,event_uuid,event_type,source) "
+        "SELECT 981002,id,'00000000-0000-4000-8000-000000000001',"
+        "'FOCUS_LOST','TAB_HIDDEN' FROM recruitment_candidate_attempts "
+        "WHERE community_id=981001 AND application_id=985001 LIMIT 1",
+        "cross-Community exam events forbidden", error_code=1452,
+    )
+    execute(
+        "INSERT INTO recruitment_exam_integrity_events "
+        "(community_id,attempt_id,event_uuid,event_type,source) "
+        "SELECT community_id,id,'00000000-0000-4000-8000-000000000002',"
+        "'FOCUS_LOST','TAB_HIDDEN' FROM recruitment_candidate_attempts "
+        "WHERE community_id=981001 AND application_id=985001 LIMIT 1"
+    )
+    rejected(
+        "INSERT INTO recruitment_exam_integrity_events "
+        "(community_id,attempt_id,event_uuid,event_type,source) "
+        "SELECT community_id,id,'00000000-0000-4000-8000-000000000002',"
+        "'FOCUS_LOST','TAB_HIDDEN' FROM recruitment_candidate_attempts "
+        "WHERE community_id=981001 AND application_id=985001 LIMIT 1",
+        "retries with same event UUID are idempotently unique", error_code=1062,
+    )
+    rejected(
+        "INSERT INTO recruitment_exam_integrity_events "
+        "(community_id,attempt_id,event_uuid,event_type,source) "
+        "SELECT community_id,id,'00000000-0000-4000-8000-000000000003',"
+        "'FOCUS_LOST','COPY' FROM recruitment_candidate_attempts "
+        "WHERE community_id=981001 AND application_id=985001 LIMIT 1",
+        "focus event source must match its type", error_code=4025,
     )
     compose(
         "run", "--rm", "--no-deps", "flyway",
