@@ -26,6 +26,7 @@ OBJECTIVE_DECISIONS_VERSION = "20261023.004"
 SCORE_VISIBILITY_VERSION = "20261023.005"
 INTEGRITY_EVENTS_VERSION = "20261023.006"
 REINSTATEMENTS_VERSION = "20261023.007"
+AUTOSAVE_VERSION = "20261023.008"
 
 
 def execute(sql: str, *, check: bool = True):
@@ -125,6 +126,17 @@ def run() -> None:
         "SELECT COUNT(*) FROM flyway_schema_history "
         f"WHERE success=1 AND version='{REINSTATEMENTS_VERSION}'",
         1, "reinstatement migration recorded",
+    )
+    count(
+        "SELECT COUNT(*) FROM flyway_schema_history "
+        f"WHERE success=1 AND version='{AUTOSAVE_VERSION}'",
+        1, "candidate autosave migration recorded",
+    )
+    count(
+        "SELECT COUNT(*) FROM information_schema.COLUMNS "
+        "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='recruitment_candidate_attempts' "
+        "AND COLUMN_NAME IN ('draft_answers_json','draft_revision','draft_saved_at')",
+        3, "candidate attempt draft fields exist",
     )
     count(
         "SELECT COUNT(*) FROM information_schema.COLUMNS "
@@ -464,6 +476,17 @@ def run() -> None:
         "attempt_number,expires_at,status) VALUES "
         "(981001,985001,983001,984001,2,DATE_ADD(UTC_TIMESTAMP(6),INTERVAL 30 MINUTE),'SUBMITTED')",
         "submitted attempts must have submitted timestamp and JSON", error_code=4025,
+    )
+    count(
+        "SELECT COUNT(*) FROM recruitment_candidate_attempts "
+        "WHERE community_id=981001 AND application_id=985001 "
+        "AND draft_revision=0 AND draft_answers_json IS NULL AND draft_saved_at IS NULL",
+        1, "new attempts have an empty draft revision",
+    )
+    rejected(
+        "UPDATE recruitment_candidate_attempts SET draft_answers_json='{broken' "
+        "WHERE community_id=981001 AND application_id=985001 AND attempt_number=1",
+        "malformed autosaved draft JSON rejected", error_code=4025,
     )
     rejected(
         "UPDATE recruitment_candidate_attempts SET answers_json='{broken' "
