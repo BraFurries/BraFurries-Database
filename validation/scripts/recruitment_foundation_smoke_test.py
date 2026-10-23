@@ -23,6 +23,7 @@ VOTES_MIGRATION_VERSION = "20261023.001"
 ATTEMPTS_MIGRATION_VERSION = "20261023.002"
 GRADES_MIGRATION_VERSION = "20261023.003"
 OBJECTIVE_DECISIONS_VERSION = "20261023.004"
+SCORE_VISIBILITY_VERSION = "20261023.005"
 
 
 def execute(sql: str, *, check: bool = True):
@@ -107,6 +108,11 @@ def run() -> None:
         "SELECT COUNT(*) FROM flyway_schema_history "
         f"WHERE success=1 AND version='{OBJECTIVE_DECISIONS_VERSION}'",
         1, "objective stage finalization migration recorded",
+    )
+    count(
+        "SELECT COUNT(*) FROM flyway_schema_history "
+        f"WHERE success=1 AND version='{SCORE_VISIBILITY_VERSION}'",
+        1, "exam score visibility migration recorded",
     )
     count(
         "SELECT COUNT(*) FROM information_schema.COLUMNS "
@@ -528,6 +534,23 @@ def run() -> None:
         "WHERE community_id=981001 AND application_id=985001 "
         "AND decision_source='OBJECTIVE_GRADE' AND objective_attempt_id IS NOT NULL",
         1, "objective decision references real attempt from same Community and stage",
+    )
+    count(
+        "SELECT COUNT(*) FROM recruitment_stage_attempt_policies "
+        "WHERE score_visibility='PRIVATE'",
+        1, "private-by-default score policy",
+    )
+    execute(
+        "UPDATE recruitment_stage_attempt_policies SET "
+        "score_visibility='AFTER_SUBMISSION' "
+        "WHERE community_id=981001 AND stage_id=984001"
+    )
+    rejected(
+        "UPDATE recruitment_stage_attempt_policies SET "
+        "score_visibility='PUBLIC_RESULT' "
+        "WHERE community_id=981001 AND stage_id=984001",
+        "final result cannot be exposed through exam-grade visibility",
+        error_code=4025,
     )
     compose(
         "run", "--rm", "--no-deps", "flyway",
