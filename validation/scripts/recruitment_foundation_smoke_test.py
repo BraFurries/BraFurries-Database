@@ -351,15 +351,14 @@ def run() -> None:
         "voter cannot vote twice", error_code=1062,
     )
     rejected(
-        "INSERT INTO recruitment_stage_votes "
-        "(community_id,application_id,stage_id,voter_user_id,choice) "
-        "VALUES (981001,985001,984001,981001,'ABSTAIN')",
-        "unsupported ballot choice is rejected", error_code=1062,
+        "UPDATE recruitment_stage_votes SET choice='ABSTAIN' "
+        "WHERE community_id=981001 AND application_id=985001 AND stage_id=984001",
+        "unsupported ballot choice is rejected", error_code=4025,
     )
     count(
         "SELECT COUNT(*) FROM information_schema.COLUMNS "
         "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='recruitment_stage_decisions' "
-        "AND COLUMN_NAME='decision_source' AND COLUMN_DEFAULT='MANUAL'",
+        "AND COLUMN_NAME='decision_source' AND COLUMN_DEFAULT LIKE '%MANUAL%'",
         1, "existing manual decisions retain the default source",
     )
     execute(
