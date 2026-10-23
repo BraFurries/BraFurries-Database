@@ -7,6 +7,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from physical_schema_fingerprint import (
+    BASELINE_MIGRATE_OPTIONS,
     capture_disposable,
     compare_files,
     diffs,
@@ -19,8 +20,7 @@ from smoke_test import (
     safety_preflight, start_empty_database,
 )
 
-BASELINE_LOCATIONS = "-locations=filesystem:/flyway/baseline,filesystem:/flyway/official"
-PROBE_COLUMN = "__brf_fingerprint_synthetic_probe"
+ PROBE_COLUMN = "__brf_fingerprint_synthetic_probe"
 
 
 def alter_on_disposable(sql: str) -> None:
@@ -35,7 +35,7 @@ def alter_on_disposable(sql: str) -> None:
 def run_smoke() -> None:
     down()
     start_empty_database()
-    compose("run", "--rm", "--no-deps", "flyway", BASELINE_LOCATIONS, "migrate")
+    compose("run", "--rm", "--no-deps", "flyway", *BASELINE_MIGRATE_OPTIONS, "migrate")
 
     pristine = capture_disposable()
     structure = normalize(pristine)["sections"]
