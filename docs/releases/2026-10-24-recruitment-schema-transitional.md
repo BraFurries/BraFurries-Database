@@ -57,16 +57,16 @@ There is no authorization here to apply any further DDL, DML, `baseline`,
        FROM information_schema.TABLES
       WHERE TABLE_SCHEMA = DATABASE()
         AND TABLE_TYPE = 'BASE TABLE'
-        AND TABLE_NAME LIKE 'recruitment\\_%' ESCAPE '\\') AS recruitment_tables,
+        AND LEFT(TABLE_NAME, 12) = 'recruitment_') AS recruitment_tables,
     (SELECT COUNT(*)
        FROM information_schema.TABLE_CONSTRAINTS
       WHERE CONSTRAINT_SCHEMA = DATABASE()
         AND CONSTRAINT_TYPE = 'FOREIGN KEY'
-        AND TABLE_NAME LIKE 'recruitment\\_%' ESCAPE '\\') AS recruitment_fk_constraints,
+        AND LEFT(TABLE_NAME, 12) = 'recruitment_') AS recruitment_fk_constraints,
     (SELECT COUNT(*)
        FROM information_schema.CHECK_CONSTRAINTS
       WHERE CONSTRAINT_SCHEMA = DATABASE()
-        AND TABLE_NAME LIKE 'recruitment\\_%' ESCAPE '\\') AS recruitment_check_constraints;
+        AND LEFT(TABLE_NAME, 12) = 'recruitment_') AS recruitment_check_constraints;
   ```
 
   Expected: 17, 32, 43. Investigate any difference; matching counts alone
