@@ -45,7 +45,32 @@ There is no authorization here to apply any further DDL, DML, `baseline`,
 ## Follow-up
 
 - Verify table/column, FK, index and CHECK structure using read-only metadata
-  against the approved 124-table reference.
+  against the approved 124-table reference. The 14 canonical migration files
+  define **32 distinct new foreign-key constraints** and **43 distinct final
+  recruitment CHECK constraints** (44 CHECK additions, including a replacement
+  of `ck_rsd_source`). These counts are **expectations from the SQL files**,
+  not observed production metadata. A read-only operator may inspect them with:
+
+  ```sql
+  SELECT
+    (SELECT COUNT(*)
+       FROM information_schema.TABLES
+      WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_TYPE = 'BASE TABLE'
+        AND TABLE_NAME LIKE 'recruitment\\_%' ESCAPE '\\') AS recruitment_tables,
+    (SELECT COUNT(*)
+       FROM information_schema.TABLE_CONSTRAINTS
+      WHERE CONSTRAINT_SCHEMA = DATABASE()
+        AND CONSTRAINT_TYPE = 'FOREIGN KEY'
+        AND TABLE_NAME LIKE 'recruitment\\_%' ESCAPE '\\') AS recruitment_fk_constraints,
+    (SELECT COUNT(*)
+       FROM information_schema.CHECK_CONSTRAINTS
+      WHERE CONSTRAINT_SCHEMA = DATABASE()
+        AND TABLE_NAME LIKE 'recruitment\\_%' ESCAPE '\\') AS recruitment_check_constraints;
+  ```
+
+  Expected: 17, 32, 43. Investigate any difference; matching counts alone
+  do not establish equality of individual definitions.
 - Confirm the official BraFurries Community ID from the active Discord guild
   `753321055682035712` (never guess the numerical Community ID).
 - Deploy API and Front in authorized sequence and verify the feature is gated
