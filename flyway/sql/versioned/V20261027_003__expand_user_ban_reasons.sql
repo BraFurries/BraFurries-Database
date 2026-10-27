@@ -1,12 +1,15 @@
--- The legacy unique_ban(community_id, date, reason) rejects unrelated members
--- banned on the same day for the same reason. Its uniqueness is not a valid
--- moderation invariant. Keep a supporting tenant/date index for history queries
--- and for the foreign key on community_id.
+-- A reason is not a unique business key for moderation actions.
+-- Production baseline has unique_ban(community_id, date, reason), but some
+-- historical pre-baseline states do not. Both must be supported by Flyway.
 --
--- user_bans.reason was VARCHAR(256), rejecting detailed moderation rationale
--- with DataError. All historical values are preserved by this widening change.
--- Contract: API UserBan.reason and Coddy /ban accept up to 2048 characters.
+-- MariaDB 10.6: create the non-unique tenant/date lookup before dropping the
+-- old key so the FK on user_bans.community_id always has a supporting index.
+CREATE INDEX IF NOT EXISTS `idx_user_bans_community_date`
+    ON `user_bans` (`community_id`, `date`);
+
+DROP INDEX IF EXISTS `unique_ban` ON `user_bans`;
+
+-- Preserve IDs, existing records and dependent ban-effect ledger references.
+-- The API/Coddy contract will expand from 256 to 2048 only after this migration.
 ALTER TABLE `user_bans`
-    ADD INDEX `idx_user_bans_community_date` (`community_id`, `date`),
-    DROP INDEX `unique_ban`,
     MODIFY COLUMN `reason` VARCHAR(2048) NOT NULL;
