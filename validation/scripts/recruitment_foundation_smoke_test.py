@@ -66,7 +66,7 @@ def run() -> None:
         "SELECT COUNT(*) FROM information_schema.TABLES "
         "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_TYPE='BASE TABLE' "
         "AND TABLE_NAME<>'flyway_schema_history'",
-        124, "107 legacy plus recruitment tables, notices and read receipts",
+        125, "107 legacy plus recruitment tables, notices, read receipts and appeals",
     )
     count(
         "SELECT COUNT(*) FROM flyway_schema_history "
@@ -145,6 +145,16 @@ def run() -> None:
         1, "incident notice and receipt schema recorded",
     )
     count(
+        "SELECT COUNT(*) FROM flyway_schema_history "
+        "WHERE success=1 AND version='20261027.002'",
+        1, "candidate technical appeal migration recorded",
+    )
+    count(
+        "SELECT COUNT(*) FROM information_schema.TABLES "
+        "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='recruitment_exam_block_appeals'",
+        1, "technical appeal table exists",
+    )
+    count(
         "SELECT COUNT(*) FROM information_schema.COLUMNS "
         "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='recruitment_processes' "
         "AND COLUMN_NAME='draft_revision' AND DATA_TYPE='bigint' "
@@ -154,7 +164,7 @@ def run() -> None:
     count(
         "SELECT COUNT(*) FROM information_schema.REFERENTIAL_CONSTRAINTS "
         "WHERE CONSTRAINT_SCHEMA=DATABASE() AND TABLE_NAME LIKE 'recruitment_%'",
-        32, "all recruitment foreign keys including notices and reads exist",
+        35, "all recruitment foreign keys including candidate appeals exist",
     )
 
     execute(
