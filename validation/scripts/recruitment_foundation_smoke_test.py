@@ -487,6 +487,44 @@ def run() -> None:
         "reusing attempt number is forbidden", error_code=1062,
     )
     rejected(
+        "INSERT INTO recruitment_exam_block_appeals "
+        "(community_id,attempt_id,application_id,stage_id,candidate_user_id,reason) "
+        "SELECT 981002,id,application_id,stage_id,981002,"
+        "'System notification interrupted the assessment window' "
+        "FROM recruitment_candidate_attempts WHERE community_id=981001 "
+        "AND application_id=985001 AND attempt_number=1",
+        "technical appeal cannot cross Community even for valid foreign member",
+        error_code=1452,
+    )
+    execute(
+        "INSERT INTO recruitment_exam_block_appeals "
+        "(community_id,attempt_id,application_id,stage_id,candidate_user_id,reason) "
+        "SELECT community_id,id,application_id,stage_id,981001,"
+        "'System notification interrupted the assessment window' "
+        "FROM recruitment_candidate_attempts WHERE community_id=981001 "
+        "AND application_id=985001 AND attempt_number=1"
+    )
+    rejected(
+        "INSERT INTO recruitment_exam_block_appeals "
+        "(community_id,attempt_id,application_id,stage_id,candidate_user_id,reason) "
+        "SELECT community_id,id,application_id,stage_id,981001,"
+        "'System notification interrupted the assessment window' "
+        "FROM recruitment_candidate_attempts WHERE community_id=981001 "
+        "AND application_id=985001 AND attempt_number=1",
+        "technical appeal can be requested only once per attempt", error_code=1062,
+    )
+    rejected(
+        "UPDATE recruitment_exam_block_appeals SET status='DENIED' "
+        "WHERE community_id=981001 AND application_id=985001",
+        "review denial must contain reviewer, reason and review timestamp",
+        error_code=4025,
+    )
+    count(
+        "SELECT COUNT(*) FROM recruitment_exam_block_appeals "
+        "WHERE community_id=981001 AND application_id=985001 AND status='PENDING'",
+        1, "pending technical appeal remains intact after invalid status changes",
+    )
+    rejected(
         "INSERT INTO recruitment_candidate_attempts "
         "(community_id,application_id,process_version_id,stage_id,"
         "attempt_number,expires_at,status) VALUES "
