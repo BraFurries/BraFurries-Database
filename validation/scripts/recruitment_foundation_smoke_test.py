@@ -66,7 +66,7 @@ def run() -> None:
         "SELECT COUNT(*) FROM information_schema.TABLES "
         "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_TYPE='BASE TABLE' "
         "AND TABLE_NAME<>'flyway_schema_history'",
-        124, "107 legacy plus recruitment tables, notices and read receipts",
+        125, "107 legacy plus recruitment tables, notices, read receipts and appeals",
     )
     count(
         "SELECT COUNT(*) FROM flyway_schema_history "
@@ -145,6 +145,16 @@ def run() -> None:
         1, "incident notice and receipt schema recorded",
     )
     count(
+        "SELECT COUNT(*) FROM flyway_schema_history "
+        "WHERE success=1 AND version='20261027.002'",
+        1, "candidate technical appeal migration recorded",
+    )
+    count(
+        "SELECT COUNT(*) FROM information_schema.TABLES "
+        "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='recruitment_exam_block_appeals'",
+        1, "technical appeal table exists",
+    )
+    count(
         "SELECT COUNT(*) FROM information_schema.COLUMNS "
         "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='recruitment_processes' "
         "AND COLUMN_NAME='draft_revision' AND DATA_TYPE='bigint' "
@@ -154,7 +164,7 @@ def run() -> None:
     count(
         "SELECT COUNT(*) FROM information_schema.REFERENTIAL_CONSTRAINTS "
         "WHERE CONSTRAINT_SCHEMA=DATABASE() AND TABLE_NAME LIKE 'recruitment_%'",
-        32, "all recruitment foreign keys including notices and reads exist",
+        35, "all recruitment foreign keys including candidate appeals exist",
     )
 
     execute(
@@ -475,6 +485,44 @@ def run() -> None:
         "attempt_number,expires_at) VALUES "
         "(981001,985001,983001,984001,1,DATE_ADD(UTC_TIMESTAMP(6),INTERVAL 30 MINUTE))",
         "reusing attempt number is forbidden", error_code=1062,
+    )
+    rejected(
+        "INSERT INTO recruitment_exam_block_appeals "
+        "(community_id,attempt_id,application_id,stage_id,candidate_user_id,reason) "
+        "SELECT 981002,id,application_id,stage_id,981002,"
+        "'System notification interrupted the assessment window' "
+        "FROM recruitment_candidate_attempts WHERE community_id=981001 "
+        "AND application_id=985001 AND attempt_number=1",
+        "technical appeal cannot cross Community even for valid foreign member",
+        error_code=1452,
+    )
+    execute(
+        "INSERT INTO recruitment_exam_block_appeals "
+        "(community_id,attempt_id,application_id,stage_id,candidate_user_id,reason) "
+        "SELECT community_id,id,application_id,stage_id,981001,"
+        "'System notification interrupted the assessment window' "
+        "FROM recruitment_candidate_attempts WHERE community_id=981001 "
+        "AND application_id=985001 AND attempt_number=1"
+    )
+    rejected(
+        "INSERT INTO recruitment_exam_block_appeals "
+        "(community_id,attempt_id,application_id,stage_id,candidate_user_id,reason) "
+        "SELECT community_id,id,application_id,stage_id,981001,"
+        "'System notification interrupted the assessment window' "
+        "FROM recruitment_candidate_attempts WHERE community_id=981001 "
+        "AND application_id=985001 AND attempt_number=1",
+        "technical appeal can be requested only once per attempt", error_code=1062,
+    )
+    rejected(
+        "UPDATE recruitment_exam_block_appeals SET status='DENIED' "
+        "WHERE community_id=981001 AND application_id=985001",
+        "review denial must contain reviewer, reason and review timestamp",
+        error_code=4025,
+    )
+    count(
+        "SELECT COUNT(*) FROM recruitment_exam_block_appeals "
+        "WHERE community_id=981001 AND application_id=985001 AND status='PENDING'",
+        1, "pending technical appeal remains intact after invalid status changes",
     )
     rejected(
         "INSERT INTO recruitment_candidate_attempts "
