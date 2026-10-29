@@ -1,7 +1,9 @@
 -- Portaria exceptional clarification ticket (opt-in, disabled by default).
--- Control-plane state belongs to API; Coddy owns Discord channel side effects.
+-- API owns configuration and its authorization; Coddy owns operational ticket state.
 -- One record per submitted form. Reopening/duplicates must never create
 -- multiple rooms; decisions on the form remain independent of ticket creation.
+-- Staff identity is a Discord snowflake: an authorized Discord moderator need
+-- not have a corresponding BraFurries Web user account.
 
 ALTER TABLE `portaria_base_config`
   ADD COLUMN `clarification_tickets_enabled` TINYINT(1) NOT NULL DEFAULT 0
@@ -28,14 +30,14 @@ CREATE TABLE `portaria_clarification_tickets` (
   `guild_id` BIGINT(20) NOT NULL,
   `submission_id` INT(11) NOT NULL,
   `applicant_discord_user_id` BIGINT(20) NOT NULL,
-  `requested_by_user_id` INT(11) NOT NULL,
+  `requested_by_discord_user_id` BIGINT(20) NOT NULL,
   `reason` VARCHAR(1024) NOT NULL,
   `status` VARCHAR(20) NOT NULL DEFAULT 'REQUESTED',
   `discord_channel_id` BIGINT(20) NULL,
   `requested_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   `opened_at` DATETIME(6) NULL,
   `closed_at` DATETIME(6) NULL,
-  `closed_by_user_id` INT(11) NULL,
+  `closed_by_discord_user_id` BIGINT(20) NULL,
   `close_reason` VARCHAR(1024) NULL,
   `last_error_code` VARCHAR(64) NULL,
   `version` BIGINT(20) NOT NULL DEFAULT 0,
@@ -51,10 +53,6 @@ CREATE TABLE `portaria_clarification_tickets` (
   CONSTRAINT `fk_pct_submission_guild` FOREIGN KEY (`submission_id`, `guild_id`)
     REFERENCES `form_submissions` (`id`, `guild_id`)
     ON UPDATE RESTRICT ON DELETE RESTRICT,
-  CONSTRAINT `fk_pct_requester` FOREIGN KEY (`requested_by_user_id`)
-    REFERENCES `users` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT,
-  CONSTRAINT `fk_pct_closer` FOREIGN KEY (`closed_by_user_id`)
-    REFERENCES `users` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT,
   CONSTRAINT `ck_pct_state` CHECK (
     `status` IN ('REQUESTED', 'OPENING', 'OPEN', 'CLOSING', 'CLOSED', 'FAILED')
   ),
@@ -67,7 +65,7 @@ CREATE TABLE `portaria_clarification_tickets` (
   ),
   CONSTRAINT `ck_pct_closure` CHECK (
     (`status`='CLOSED' AND `closed_at` IS NOT NULL
-      AND `closed_by_user_id` IS NOT NULL
+      AND `closed_by_discord_user_id` IS NOT NULL
       AND `close_reason` IS NOT NULL)
     OR `status` <> 'CLOSED'
   )
