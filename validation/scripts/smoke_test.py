@@ -2168,6 +2168,59 @@ def prove_network_membership_constraints() -> None:
     query("DELETE FROM users WHERE id = 801")
 
 
+def prove_user_ban_reason_capacity() -> None:
+    # A moderation reason is not a uniqueness key; repeated rationale must
+    # be accepted for different users in the same tenant and calendar day.
+    require_equal(
+        query(
+            "SELECT CHARACTER_MAXIMUM_LENGTH FROM information_schema.COLUMNS "
+            "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='user_bans' "
+            "AND COLUMN_NAME='reason'"
+        ),
+        "2048",
+        "user_bans reason retains detailed moderation rationale",
+    )
+    require_equal(
+        query(
+            "SELECT COUNT(*) FROM information_schema.statistics "
+            "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='user_bans' "
+            "AND INDEX_NAME='unique_ban'"
+        ),
+        "0",
+        "obsolete community/date/reason uniqueness was removed",
+    )
+    assert_index("user_bans", "idx_user_bans_community_date", "1", "community_id,date")
+
+    detailed_reason = "x" * 386
+    query(
+        "INSERT INTO communities (id, name) VALUES "
+        "(9440, 'Ban smoke tenant A'), (9441, 'Ban smoke tenant B')"
+    )
+    query(
+        "INSERT INTO users (id, display_name) VALUES "
+        "(9440, 'Member A'), (9441, 'Member B'), (9442, 'Member C')"
+    )
+    query(
+        "INSERT INTO user_bans (id, user_id, community_id, date, reason) VALUES "
+        f"(9440, 9440, 9440, '2026-10-27', '{detailed_reason}'), "
+        f"(9441, 9441, 9440, '2026-10-27', '{detailed_reason}'), "
+        f"(9442, 9442, 9441, '2026-10-27', '{detailed_reason}')"
+    )
+    require_equal(
+        query("SELECT COUNT(*) FROM user_bans WHERE community_id=9440"),
+        "2",
+        "two distinct users can be banned for the same reason in one tenant",
+    )
+    require_equal(
+        query("SELECT COUNT(*) FROM user_bans WHERE community_id=9441"),
+        "1",
+        "independent tenant accepts the same reason without collisions",
+    )
+    query("DELETE FROM user_bans WHERE id IN (9440, 9441, 9442)")
+    query("DELETE FROM users WHERE id IN (9440, 9441, 9442)")
+    query("DELETE FROM communities WHERE id IN (9440, 9441)")
+
+
 def prove_user_ban_effect_constraints() -> None:
     query("INSERT INTO communities (id, name) VALUES (401, 'Moderation Community')")
     query(
@@ -3148,6 +3201,7 @@ def run_smoke() -> None:
     prove_community_network_sync_constraints()
     prove_network_membership_constraints()
     prove_user_ban_effect_constraints()
+    prove_user_ban_reason_capacity()
     prove_bump_monthly_reward_ledger_constraints()
     prove_user_level_guild_isolation()
     assert_backup_schema()
@@ -3188,6 +3242,7 @@ def run_smoke() -> None:
     prove_community_network_sync_constraints()
     prove_network_membership_constraints()
     prove_user_ban_effect_constraints()
+    prove_user_ban_reason_capacity()
     prove_bump_monthly_reward_ledger_constraints()
     prove_user_level_guild_isolation()
     assert_backup_schema()
