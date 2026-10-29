@@ -36,7 +36,10 @@ historical baseline unchanged.
    `idx_user_bans_community_date`. Verify row count and dependent FK health.
 3. Deploy API physical-column mapping widening (`@Column(length = 2048)`), preserving
    `LocalDate` for `date` and `valid_until`.
-4. Deploy Coddy 1024-embed-unit input validation and DATE-binding fix; Database remains VARCHAR(2048).
+4. After the separate nullable-details migration `V20261029_004`, deploy Coddy with a
+   mandatory short reason within the Discord audit-header limit (512 URL-encoded UTF-8
+   characters), optional private `reason_details` of up to 2048 database characters,
+   and the DATE-binding fix. Database `reason` remains VARCHAR(2048).
 5. Smoke one permanent ban with a short reason, one long reason, and separate
    users with the same reason, **only with authorized test accounts**. Confirm
    records before effects and audit outcomes. Do not rerun real ban commands
@@ -49,10 +52,12 @@ historical baseline unchanged.
 - A pre-migration Coddy configured to accept reasons longer than 256 characters will
   fail at the old column; **migrate Database first**.
 - The database capacity is **2048**, but the Coddy moderation input contract is
-  **1024 Discord embed-field UTF-16 units**, because normal ban logs and
-  automatic identity-propagation logs put the complete reason in `field.value`.
-  Reject over-limit input rather than truncating it. Keep the larger database
-  capacity for historical/future compatibility; do not shrink the column.
+  **512 URL-encoded UTF-8 characters**, because the *same* short reason is sent
+  to Discord's `X-Audit-Log-Reason` and to the embed `Motivo` field (whose own
+  maximum is 1024). Never prepend/truncate it downstream. A separate nullable
+  `reason_details VARCHAR(2048)` holds staff-only context, added in
+  `V20261029_004`. Keep the larger physical capacity of `reason` for legacy
+  compatibility; do not shrink the column.
 - The `date` and `valid_until` columns remain SQL `DATE`; hourly
   expiration needs its own coordinated Database/API/Coddy migration.
 - In case of rollback, do not shrink the field to 256 if long reasons already
