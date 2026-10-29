@@ -146,6 +146,17 @@ def run() -> None:
     )
     count(
         "SELECT COUNT(*) FROM flyway_schema_history "
+        "WHERE success=1 AND version='20261029.001'",
+        1, "focus-warning acknowledgement migration recorded",
+    )
+    count(
+        "SELECT COUNT(*) FROM information_schema.COLUMNS "
+        "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='recruitment_candidate_attempts' "
+        "AND COLUMN_NAME='focus_losses_acknowledged'",
+        1, "candidate attempt acknowledgement field exists",
+    )
+    count(
+        "SELECT COUNT(*) FROM flyway_schema_history "
         "WHERE success=1 AND version='20261027.002'",
         1, "candidate technical appeal migration recorded",
     )
@@ -485,6 +496,27 @@ def run() -> None:
         "attempt_number,expires_at) VALUES "
         "(981001,985001,983001,984001,1,DATE_ADD(UTC_TIMESTAMP(6),INTERVAL 30 MINUTE))",
         "reusing attempt number is forbidden", error_code=1062,
+    )
+    rejected(
+        "UPDATE recruitment_candidate_attempts SET focus_losses_acknowledged=1 "
+        "WHERE community_id=981001 AND application_id=985001",
+        "candidate cannot acknowledge an unrecorded loss", error_code=4025,
+    )
+    execute(
+        "UPDATE recruitment_candidate_attempts "
+        "SET focus_losses=1,focus_losses_acknowledged=1 "
+        "WHERE community_id=981001 AND application_id=985001"
+    )
+    count(
+        "SELECT COUNT(*) FROM recruitment_candidate_attempts "
+        "WHERE community_id=981001 AND application_id=985001 "
+        "AND focus_losses=1 AND focus_losses_acknowledged=1",
+        1, "recorded warning can be acknowledged",
+    )
+    execute(
+        "UPDATE recruitment_candidate_attempts "
+        "SET focus_losses=0,focus_losses_acknowledged=0 "
+        "WHERE community_id=981001 AND application_id=985001"
     )
     rejected(
         "INSERT INTO recruitment_exam_block_appeals "
