@@ -2221,6 +2221,61 @@ def prove_user_ban_reason_capacity() -> None:
     query("DELETE FROM communities WHERE id IN (9440, 9441)")
 
 
+def prove_private_ban_reason_details() -> None:
+    # Optional context is preserved internally and never moves between tenants.
+    require_equal(
+        query(
+            "SELECT CHARACTER_MAXIMUM_LENGTH FROM information_schema.columns "
+            "WHERE table_schema=DATABASE() AND table_name='user_bans' "
+            "AND column_name='reason_details'"
+        ),
+        "2048",
+        "private ban details capacity",
+    )
+    require_equal(
+        query(
+            "SELECT IS_NULLABLE FROM information_schema.columns "
+            "WHERE table_schema=DATABASE() AND table_name='user_bans' "
+            "AND column_name='reason_details'"
+        ),
+        "YES",
+        "private ban details must remain optional",
+    )
+    query(
+        "INSERT INTO communities (id,name) VALUES "
+        "(9460,'Private ban tenant A'),(9461,'Private ban tenant B')"
+    )
+    query(
+        "INSERT INTO users (id,display_name) VALUES "
+        "(9460,'Private member A'),(9461,'Private member B')"
+    )
+    query(
+        "INSERT INTO user_bans (id,user_id,community_id,date,reason,reason_details) "
+        "VALUES (9460,9460,9460,'2026-10-29','Short reason',"
+        "'Internal private explanation'),"
+        "(9461,9461,9461,'2026-10-29','Short reason',NULL)"
+    )
+    require_equal(
+        query(
+            "SELECT reason_details FROM user_bans "
+            "WHERE id=9460 AND community_id=9460"
+        ),
+        "Internal private explanation",
+        "staff details are stored for the correct Community",
+    )
+    require_equal(
+        query(
+            "SELECT COUNT(*) FROM user_bans WHERE id=9461 "
+            "AND community_id=9461 AND reason_details IS NULL"
+        ),
+        "1",
+        "legacy and optional details remain null when omitted",
+    )
+    query("DELETE FROM user_bans WHERE id IN (9460,9461)")
+    query("DELETE FROM users WHERE id IN (9460,9461)")
+    query("DELETE FROM communities WHERE id IN (9460,9461)")
+
+
 def prove_user_warning_repetition() -> None:
     # A same-day same-reason warning is a separate moderation action.
     require_equal(
@@ -3257,6 +3312,7 @@ def run_smoke() -> None:
     prove_network_membership_constraints()
     prove_user_ban_effect_constraints()
     prove_user_ban_reason_capacity()
+    prove_private_ban_reason_details()
     prove_user_warning_repetition()
     prove_bump_monthly_reward_ledger_constraints()
     prove_user_level_guild_isolation()
@@ -3299,6 +3355,7 @@ def run_smoke() -> None:
     prove_network_membership_constraints()
     prove_user_ban_effect_constraints()
     prove_user_ban_reason_capacity()
+    prove_private_ban_reason_details()
     prove_user_warning_repetition()
     prove_bump_monthly_reward_ledger_constraints()
     prove_user_level_guild_isolation()
