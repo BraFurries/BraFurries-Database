@@ -34,7 +34,7 @@ Database README permits a transitional **manual mirror of reviewed, versioned
 migrations** before production Flyway adoption. This is not `flyway migrate`,
 `baselineOnMigrate`, `repair`, or creation of a fabricated history table.
 
-The schema authority is the SQL already merged in `main`, in this exact order:
+The schema authority is the reviewed versioned SQL in the Database repository. The first two migrations were merged to `main` through #32 and #34; the third was still proposed in Database #36 when the operator reported its manual production execution. Their ordering is:
 
 1. `flyway/sql/versioned/V20261029_002__expand_user_ban_reasons.sql`
    (create replacement index, drop `unique_ban`, widen ban reason to 2048)
