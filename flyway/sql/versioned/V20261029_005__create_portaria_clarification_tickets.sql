@@ -1,7 +1,8 @@
 -- Portaria exceptional clarification ticket (opt-in, disabled by default).
 -- API owns configuration and its authorization; Coddy owns operational ticket state.
--- One record per submitted form. Reopening/duplicates must never create
--- multiple rooms; decisions on the form remain independent of ticket creation.
+-- Allow a history of closed tickets for the same applicant or form, but at
+-- most ONE unfinished ticket per applicant per guild at a time.
+-- Decisions on the form remain independent of ticket creation.
 -- Staff identity is a Discord snowflake: an authorized Discord moderator need
 -- not have a corresponding BraFurries Web user account.
 
@@ -43,9 +44,15 @@ CREATE TABLE `portaria_clarification_tickets` (
   `opening_attempted_at` DATETIME(6) NULL,
   `closing_attempted_at` DATETIME(6) NULL,
   `version` BIGINT(20) NOT NULL DEFAULT 0,
+  -- MariaDB unique keys allow multiple NULLs, so historical CLOSED rows do
+  -- not occupy the applicant's active slot. FAILED stays unfinished until
+  -- explicitly retried/resolved, regardless of channel state.
+  `active_applicant_discord_user_id` BIGINT(20)
+    GENERATED ALWAYS AS (CASE WHEN `status` <> 'CLOSED'
+      THEN `applicant_discord_user_id` ELSE NULL END) PERSISTENT,
   PRIMARY KEY (`id`),
-  -- Exact one ticket per submission, across retries and restarts.
-  UNIQUE KEY `uq_pct_community_submission` (`community_id`, `submission_id`),
+  KEY `idx_pct_community_submission` (`community_id`, `submission_id`),
+  UNIQUE KEY `uq_pct_one_active_applicant` (`community_id`, `guild_id`, `active_applicant_discord_user_id`),
   UNIQUE KEY `uq_pct_guild_channel` (`guild_id`, `discord_channel_id`),
   KEY `idx_pct_community_status` (`community_id`, `status`, `requested_at`),
   KEY `idx_pct_guild_status` (`guild_id`, `status`, `requested_at`),
