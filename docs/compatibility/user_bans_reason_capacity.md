@@ -34,9 +34,9 @@ historical baseline unchanged.
 2. Apply Database migration through the established controlled Flyway rollout;
    confirm `reason` length 2048, no `unique_ban`, and a non-unique
    `idx_user_bans_community_date`. Verify row count and dependent FK health.
-3. Deploy API mapping widening (`@Column(length = 2048)`), preserving
+3. Deploy API physical-column mapping widening (`@Column(length = 2048)`), preserving
    `LocalDate` for `date` and `valid_until`.
-4. Deploy Coddy 2048-character input validation and DATE-binding fix.
+4. Deploy Coddy 1024-embed-unit input validation and DATE-binding fix; Database remains VARCHAR(2048).
 5. Smoke one permanent ban with a short reason, one long reason, and separate
    users with the same reason, **only with authorized test accounts**. Confirm
    records before effects and audit outcomes. Do not rerun real ban commands
@@ -46,8 +46,13 @@ historical baseline unchanged.
 
 - Older API/Coddy versions remain able to read/write existing short reasons
   during a staged rollout.
-- A pre-migration Coddy configured to accept 2048-character reasons will
-  fail at the old 256-character column; **migrate Database first**.
+- A pre-migration Coddy configured to accept reasons longer than 256 characters will
+  fail at the old column; **migrate Database first**.
+- The database capacity is **2048**, but the Coddy moderation input contract is
+  **1024 Discord embed-field UTF-16 units**, because normal ban logs and
+  automatic identity-propagation logs put the complete reason in `field.value`.
+  Reject over-limit input rather than truncating it. Keep the larger database
+  capacity for historical/future compatibility; do not shrink the column.
 - The `date` and `valid_until` columns remain SQL `DATE`; hourly
   expiration needs its own coordinated Database/API/Coddy migration.
 - In case of rollback, do not shrink the field to 256 if long reasons already
