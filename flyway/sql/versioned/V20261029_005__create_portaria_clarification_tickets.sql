@@ -14,6 +14,14 @@ ALTER TABLE `portaria_base_config`
     CHECK (`clarification_tickets_enabled` = 0
       OR `clarification_ticket_category_id` IS NOT NULL);
 
+-- Composite parent keys explicitly bind the submission and the Discord guild
+-- to the same Community. Do not rely on independent FK existence checks.
+ALTER TABLE `form_submissions`
+  ADD UNIQUE KEY `uq_form_submissions_id_guild` (`id`, `guild_id`);
+
+ALTER TABLE `community_discord`
+  ADD UNIQUE KEY `uq_community_discord_community_guild` (`community_id`, `guild_id`);
+
 CREATE TABLE `portaria_clarification_tickets` (
   `id` BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
   `community_id` INT(11) NOT NULL,
@@ -37,10 +45,12 @@ CREATE TABLE `portaria_clarification_tickets` (
   UNIQUE KEY `uq_pct_guild_channel` (`guild_id`, `discord_channel_id`),
   KEY `idx_pct_community_status` (`community_id`, `status`, `requested_at`),
   KEY `idx_pct_guild_status` (`guild_id`, `status`, `requested_at`),
-  CONSTRAINT `fk_pct_community` FOREIGN KEY (`community_id`)
-    REFERENCES `communities` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT,
-  CONSTRAINT `fk_pct_submission` FOREIGN KEY (`submission_id`)
-    REFERENCES `form_submissions` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT,
+  CONSTRAINT `fk_pct_community_guild` FOREIGN KEY (`community_id`, `guild_id`)
+    REFERENCES `community_discord` (`community_id`, `guild_id`)
+    ON UPDATE RESTRICT ON DELETE RESTRICT,
+  CONSTRAINT `fk_pct_submission_guild` FOREIGN KEY (`submission_id`, `guild_id`)
+    REFERENCES `form_submissions` (`id`, `guild_id`)
+    ON UPDATE RESTRICT ON DELETE RESTRICT,
   CONSTRAINT `fk_pct_requester` FOREIGN KEY (`requested_by_user_id`)
     REFERENCES `users` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT,
   CONSTRAINT `fk_pct_closer` FOREIGN KEY (`closed_by_user_id`)
