@@ -36,6 +36,8 @@ The schema authority is the SQL already merged in `main`, in this exact order:
    (create replacement index, drop `unique_ban`, widen ban reason to 2048)
 2. `flyway/sql/versioned/V20261029_003__allow_repeated_user_warnings.sql`
    (create replacement index, drop `unique_warning`)
+3. `flyway/sql/versioned/V20261029_004__add_user_ban_reason_details.sql`
+   (add `reason_details VARCHAR(2048) NULL`; preserve old records)
 
 **Do not paste partial or hand-edited DDL.** The SQL must match the reviewed
 migration text exactly. Run the operations only after comparing the real
@@ -44,9 +46,10 @@ other outstanding production schema changes. MariaDB DDL commits implicitly,
 so do not count on transaction rollback for a partially completed migration.
 
 The **physical capacity** of `user_bans.reason` becomes 2048 characters.
-The **new Coddy user input limit** is **1024 Discord embed-field UTF-16 units**
-because `logBan`, automatic identity propagation and warn logs use one embed
-field for the complete reason. A longer reason must be rejected before
+The **new Coddy user input limit** is **512 URL-encoded UTF-8 characters**, because the same mandatory short
+reason is sent to the native Discord audit log and the ban log embed.
+An optional `reason_details` up to 2048 database characters contains staff-only
+context; it must never be included in audit log headers, embeds or member DTOs. A longer reason must be rejected before
 persistence/effects; no silent truncation or data-capacity shrink is planned.
 The API JPA `@Column(length=2048)` describes the physical column capacity.
 
@@ -65,8 +68,8 @@ The API JPA `@Column(length=2048)` describes the physical column capacity.
 
 ## Postflight (read only)
 
-- Confirm `user_bans.reason VARCHAR(2048) NOT NULL`, `user_warnings.reason
-  VARCHAR(1024) NOT NULL`.
+- Confirm `user_bans.reason VARCHAR(2048) NOT NULL`, `user_bans.reason_details
+  VARCHAR(2048) NULL`, `user_warnings.reason VARCHAR(1024) NOT NULL`.
 - Confirm both old unique keys are gone and the two new tenant-scoped indexes
   exist, **nonunique**, with the expected ordered columns.
 - Confirm original row counts and all original PK/FK relationships remain,
@@ -76,8 +79,8 @@ The API JPA `@Column(length=2048)` describes the physical column capacity.
 
 ## Runtime deployment dependencies
 
-After postflight: merge/deploy API #55 (JPA mapping 2048) and coordinated Coddy
-#39 -> #40 (ban reason validation 1024) -> #41 (warnings/date/import
+After postflight: merge/deploy API #55 (JPA short reason and optional private details) and coordinated Coddy
+#39 -> #40 (short audit reason validation + optional private details) -> #41 (warnings/date/import
 idempotence). Review actual PR diffs, HEADs, approval threads, mergeability
 and checks again before any authorized merges, including CI on the final
 combined Coddy main tree. Front and other tenants receive no new DDL.
