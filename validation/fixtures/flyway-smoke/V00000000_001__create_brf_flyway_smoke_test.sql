@@ -124,6 +124,29 @@ CREATE TABLE `user_bans` (
         FOREIGN KEY (`community_id`) REFERENCES `communities` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+-- TEST FIXTURE ONLY: canonical warning table for both fresh and partial
+-- legacy Flyway adoption scenarios. This fixture is never applied in production.
+CREATE TABLE `user_warnings` (
+    `id` INT(11) NOT NULL AUTO_INCREMENT,
+    `user_id` INT(11) NOT NULL,
+    `community_id` INT(11) NOT NULL,
+    `date` DATE NOT NULL,
+    `reason` VARCHAR(1024) NOT NULL,
+    `expired` BIT(1) NOT NULL DEFAULT b'0',
+    `applied_by` INT(11) NOT NULL,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `unique_warning` (`user_id`,`community_id`,`date`,`reason`) USING HASH,
+    KEY `warns_user_id_users_id` (`user_id`),
+    KEY `FK_warns_communities` (`community_id`),
+    KEY `FK_user_warnings_users` (`applied_by`),
+    CONSTRAINT `FK_user_warnings_users` FOREIGN KEY (`applied_by`)
+      REFERENCES `users` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT `FK_warns_communities` FOREIGN KEY (`community_id`)
+      REFERENCES `communities` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT `warns_user_id_users_id` FOREIGN KEY (`user_id`)
+      REFERENCES `users` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 -- TEST FIXTURE ONLY: minimal prerequisite for the monthly Bump reward ledger FK.
 CREATE TABLE `community_discord` (
     `id` INT(11) NOT NULL AUTO_INCREMENT,

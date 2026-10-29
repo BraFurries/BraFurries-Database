@@ -2221,6 +2221,61 @@ def prove_user_ban_reason_capacity() -> None:
     query("DELETE FROM communities WHERE id IN (9440, 9441)")
 
 
+def prove_user_warning_repetition() -> None:
+    # A same-day same-reason warning is a separate moderation action.
+    require_equal(
+        query(
+            "SELECT COUNT(*) FROM information_schema.statistics "
+            "WHERE table_schema=DATABASE() AND table_name='user_warnings' "
+            "AND index_name='unique_warning'"
+        ),
+        "0",
+        "legacy uniqueness on warning reason has been removed",
+    )
+    assert_index(
+        "user_warnings", "idx_user_warnings_community_user_date",
+        "1", "community_id,user_id,date",
+    )
+    require_equal(
+        query(
+            "SELECT CHARACTER_MAXIMUM_LENGTH FROM information_schema.columns "
+            "WHERE table_schema=DATABASE() AND table_name='user_warnings' "
+            "AND column_name='reason'"
+        ),
+        "1024",
+        "warn reason retains API and Discord embed capacity",
+    )
+    query(
+        "INSERT INTO communities (id,name) VALUES "
+        "(9450,'Warnings tenant A'),(9451,'Warnings tenant B')"
+    )
+    query(
+        "INSERT INTO users (id,display_name) VALUES "
+        "(9450,'Warn user'),(9451,'Warn author')"
+    )
+    query(
+        "INSERT INTO user_warnings "
+        "(id,user_id,community_id,date,reason,expired,applied_by) VALUES "
+        "(9450,9450,9450,'2026-10-29','same reason',0,9451),"
+        "(9451,9450,9450,'2026-10-29','same reason',0,9451),"
+        "(9452,9450,9451,'2026-10-29','same reason',0,9451)"
+    )
+    require_equal(
+        query("SELECT COUNT(*) FROM user_warnings WHERE community_id=9450 "
+              "AND user_id=9450 AND reason='same reason'"),
+        "2",
+        "same user may receive two independent repeated warnings in one tenant",
+    )
+    require_equal(
+        query("SELECT COUNT(*) FROM user_warnings WHERE community_id=9451"),
+        "1",
+        "warnings in another tenant remain independent",
+    )
+    query("DELETE FROM user_warnings WHERE id IN (9450,9451,9452)")
+    query("DELETE FROM users WHERE id IN (9450,9451)")
+    query("DELETE FROM communities WHERE id IN (9450,9451)")
+
+
 def prove_user_ban_effect_constraints() -> None:
     query("INSERT INTO communities (id, name) VALUES (401, 'Moderation Community')")
     query(
@@ -3202,6 +3257,7 @@ def run_smoke() -> None:
     prove_network_membership_constraints()
     prove_user_ban_effect_constraints()
     prove_user_ban_reason_capacity()
+    prove_user_warning_repetition()
     prove_bump_monthly_reward_ledger_constraints()
     prove_user_level_guild_isolation()
     assert_backup_schema()
@@ -3243,6 +3299,7 @@ def run_smoke() -> None:
     prove_network_membership_constraints()
     prove_user_ban_effect_constraints()
     prove_user_ban_reason_capacity()
+    prove_user_warning_repetition()
     prove_bump_monthly_reward_ledger_constraints()
     prove_user_level_guild_isolation()
     assert_backup_schema()
