@@ -54,6 +54,48 @@ def rejected(sql: str, description: str, *, error_code: int) -> None:
     print(f"PASS: {description}")
 
 
+def assert_portaria_clarification_uniqueness() -> None:
+    """Real MariaDB semantics: only one unfinished ticket, unlimited closed history."""
+    execute("INSERT INTO communities (id,name) VALUES (90501,'Ticket Fixture')")
+    execute("INSERT INTO community_discord (id,community_id,name,guild_id) "
+            "VALUES (90501,90501,'Ticket Guild',90501001)")
+    execute("INSERT INTO form_flows (id,name,type,server_guild_id,target_channel_id) "
+            "VALUES (90501,'Portaria fixture','portaria',90501001,90501999)")
+    execute("INSERT INTO form_submissions (id,flow_id,user_id,guild_id,channel_id) "
+            "VALUES (90501,90501,90501777,90501001,90501999),"
+            "(90502,90501,90501777,90501001,90501999)")
+    execute("INSERT INTO portaria_clarification_tickets "
+            "(id,community_id,guild_id,submission_id,applicant_discord_user_id,"
+            "requested_by_discord_user_id,reason) "
+            "VALUES (90501,90501,90501001,90501,90501777,90501888,"
+            "'Esclarecimento inicial de portaria')")
+    rejected(
+        "INSERT INTO portaria_clarification_tickets "
+        "(id,community_id,guild_id,submission_id,applicant_discord_user_id,"
+        "requested_by_discord_user_id,reason) "
+        "VALUES (90502,90501,90501001,90502,90501777,90501888,"
+        "'Segundo ticket indevido ainda aberto')",
+        "Unique generated key rejects parallel applicant tickets across submissions",
+        error_code=1062,
+    )
+    execute("UPDATE portaria_clarification_tickets SET status='CLOSED', "
+            "discord_channel_id=90501234,opened_at=UTC_TIMESTAMP(6),"
+            "closed_at=UTC_TIMESTAMP(6),"
+            "closed_by_discord_user_id=90501888,"
+            "close_reason='Conversa encerrada com atendimento concluido' "
+            "WHERE id=90501")
+    execute("INSERT INTO portaria_clarification_tickets "
+            "(id,community_id,guild_id,submission_id,applicant_discord_user_id,"
+            "requested_by_discord_user_id,reason) "
+            "VALUES (90502,90501,90501001,90502,90501777,90501888,"
+            "'Segundo atendimento depois do encerramento')")
+    count(
+        "SELECT COUNT(*) FROM portaria_clarification_tickets "
+        "WHERE community_id=90501 AND applicant_discord_user_id=90501777",
+        2, "closed history preserved while next ticket can open",
+    )
+
+
 def run() -> None:
     down()
     start_empty_database()
@@ -91,6 +133,7 @@ def run() -> None:
         "AND EXTRA LIKE '%GENERATED%'",
         1, "active applicant is a generated nullable unique-key component",
     )
+    assert_portaria_clarification_uniqueness()
     count(
         "SELECT COUNT(*) FROM information_schema.COLUMNS "
         "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='portaria_base_config' "
