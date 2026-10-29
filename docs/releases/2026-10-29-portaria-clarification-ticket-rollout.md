@@ -66,7 +66,7 @@ SELECT TABLE_NAME, INDEX_NAME, NON_UNIQUE,
  WHERE TABLE_SCHEMA = DATABASE()
    AND TABLE_NAME IN ('portaria_clarification_tickets','form_submissions',
                       'community_discord')
-   AND INDEX_NAME IN ('uq_pct_community_submission','uq_pct_guild_channel',
+   AND INDEX_NAME IN ('uq_pct_one_active_applicant','uq_pct_guild_channel',
                       'uq_form_submissions_id_guild',
                       'uq_community_discord_community_guild')
  GROUP BY TABLE_NAME, INDEX_NAME, NON_UNIQUE
@@ -103,6 +103,7 @@ and composite FKs must match the reviewed migration.
 - A Staff member requests clarification **in Discord**, not on the site.
 - Confirm applicant, Staff and Coddy can access the channel, and an unrelated
   member cannot (also validate tenant/guild separation).
+- Verify a second ticket for the same applicant is rejected while one remains unfinished, even when linked to a different pending form. After CLOSED, a new ticket for the same form or another pending form is permitted, retaining the closed history.
 - Verify retry after a lost Discord response does not duplicate channels;
   verify recovery if the channel was manually deleted.
 - Verify that a pending ticket blocks form approval/rejection even under
