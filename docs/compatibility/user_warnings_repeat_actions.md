@@ -26,8 +26,11 @@ identified by their primary key `id`; the rationale is not an idempotency key.
   in the same transaction and checks for a matching member, Community, day
   and reason before inserting. The lock serializes concurrent imports without
   relying on uniqueness of human-readable reasons.
-- Strict reasons must be nonblank and <= 1,024 characters; validate *before*
-  Discord timeout effects. Use Python `date` objects for DATE parameters.
+- Strict reasons must be nonblank and <= 1,024 Discord embed-field UTF-16
+  units (including emoji); validate *before*
+  Discord timeout effects. A warn with a mute must log the reason without
+  adding a prefix that would exceed the embed field. Use Python `date`
+  objects for DATE parameters.
 
 ## Rollout and safety
 
