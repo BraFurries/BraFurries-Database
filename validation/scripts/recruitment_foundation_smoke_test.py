@@ -69,6 +69,29 @@ def run() -> None:
         126, "107 legacy plus recruitment tables, notices, appeals, and Portaria clarification tickets",
     )
     count(
+        "SELECT COUNT(DISTINCT CONSTRAINT_NAME) FROM "
+        "information_schema.KEY_COLUMN_USAGE "
+        "WHERE TABLE_SCHEMA=DATABASE() "
+        "AND TABLE_NAME='portaria_clarification_tickets' "
+        "AND CONSTRAINT_NAME IN ('fk_pct_community_guild','fk_pct_submission_guild') "
+        "AND REFERENCED_TABLE_NAME IS NOT NULL",
+        2, "Portaria tickets have both composite Community/guild/submission foreign keys",
+    )
+    count(
+        "SELECT COUNT(*) FROM information_schema.STATISTICS "
+        "WHERE TABLE_SCHEMA=DATABASE() "
+        "AND TABLE_NAME='portaria_clarification_tickets' "
+        "AND INDEX_NAME='uq_pct_community_submission' AND NON_UNIQUE=0",
+        2, "Portaria ticket idempotence key covers Community and submission",
+    )
+    count(
+        "SELECT COUNT(*) FROM information_schema.COLUMNS "
+        "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='portaria_base_config' "
+        "AND COLUMN_NAME='clarification_tickets_enabled' "
+        "AND COLUMN_DEFAULT='0' AND IS_NULLABLE='NO'",
+        1, "Portaria clarification remains disabled by default",
+    )
+    count(
         "SELECT COUNT(*) FROM flyway_schema_history "
         f"WHERE success=1 AND version='{MIGRATION_VERSION}'",
         1, "recruitment migration recorded exactly once",
