@@ -1,8 +1,12 @@
-# 2026-10-29 moderation schema transition — production NOT changed
+# 2026-10-29 moderation schema transition — operator-applied, partial postflight confirmed
 
-> Planned operator runbook only. GitHub merges and successful CI runs are **not** evidence
-> of production DDL. Do not execute the statements below without separate owner
-> authorization and a recoverable backup.
+> On 2026-10-29, the operator **reported manual application** of V20261029_002,
+> V20261029_003, and V20261029_004 to production. Read-only postflight
+> screenshots confirm the expected columns and replacement indexes. This is
+> evidence supplied by the operator, **not** an independently executed migration
+> or a verification of all foreign keys, backups and historical records.
+> Do not re-run these DDL scripts on the same schema. See the release evidence
+> in `docs/releases/2026-10-29-moderation-manual-schema-transition.md`.
 
 ## Confirmed, read-only production observations
 
@@ -20,7 +24,7 @@ The `flyway_schema_history` table **does not exist** in the inspected schema.
 This is consistent with production Flyway adoption being pending. It must not be
 interpreted as proof that earlier versioned SQL never ran manually.
 
-For operational comparison only, the preflight counted 67 bans and 317 warnings.
+For operational comparison only, one earlier preflight screenshot counted 67 bans and 317 warnings. The later postflight has 67 bans and 347 warnings, and the owner reports that 347 appeared in other earlier captures. These snapshots are insufficient to infer a migration-related warning increase or loss. No automatic anomaly is asserted.
 No record contents, moderators, guild IDs, or private reasons belong in this
 public runbook. Preserve all data and the nullable legacy columns.
 
@@ -53,7 +57,7 @@ context; it must never be included in audit log headers, embeds or member DTOs. 
 persistence/effects; no silent truncation or data-capacity shrink is planned.
 The API JPA `@Column(length=2048)` describes the physical column capacity.
 
-## Before owner-authorized SQL execution
+## Preconditions for a manual rollout (historical checklist)
 
 - Verify selected database, MariaDB version and `SHOW CREATE TABLE` for both
   tables, including dependent FKs, engine and collation.
@@ -66,22 +70,22 @@ The API JPA `@Column(length=2048)` describes the physical column capacity.
   while applying the two changes.
 - Obtain separate owner authorization to execute the Database SQL.
 
-## Postflight (read only)
+## Postflight (read only; observed on 2026-10-29)
 
 - Confirm `user_bans.reason VARCHAR(2048) NOT NULL`, `user_bans.reason_details
   VARCHAR(2048) NULL`, `user_warnings.reason VARCHAR(1024) NOT NULL`.
 - Confirm both old unique keys are gone and the two new tenant-scoped indexes
   exist, **nonunique**, with the expected ordered columns.
-- Confirm original row counts and all original PK/FK relationships remain,
-  without modifying existing `date` or `applied_by` nullability.
+- Confirm original PK/FK relationships remain, without modifying existing
+  `date` or `applied_by` nullability. Column nullability was verified; full
+  FK/constraint DDL remains unverified because the owner screenshots truncated
+  `SHOW CREATE TABLE` text. Do not claim full parity until it is reviewed.
 - Preserve before/after metadata and backup reference privately; record a
   sanitized release result under `docs/releases/` only **after** completion.
 
 ## Runtime deployment dependencies
 
-After postflight: merge/deploy API #55 (JPA short reason and optional private details) and coordinated Coddy
-#39 -> #40 (short audit reason validation + optional private details) -> #41 (warnings/date/import
-idempotence). Review actual PR diffs, HEADs, approval threads, mergeability
+After confirmed database postflight and authorized rollout: integrate API #55 (JPA short reason and optional private details) and the Coddy fixes #39/#40/#41. Coddy #42 is a draft integration PR combining their code without affecting `main`. Review actual PR diffs, HEADs, approval threads, mergeability
 and checks again before any authorized merges, including CI on the final
 combined Coddy main tree. Front and other tenants receive no new DDL.
 
