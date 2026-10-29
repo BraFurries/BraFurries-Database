@@ -81,8 +81,15 @@ def run() -> None:
         "SELECT COUNT(*) FROM information_schema.STATISTICS "
         "WHERE TABLE_SCHEMA=DATABASE() "
         "AND TABLE_NAME='portaria_clarification_tickets' "
-        "AND INDEX_NAME='uq_pct_community_submission' AND NON_UNIQUE=0",
-        2, "Portaria ticket idempotence key covers Community and submission",
+        "AND INDEX_NAME='uq_pct_one_active_applicant' AND NON_UNIQUE=0",
+        3, "unique active-ticket key covers Community, guild and active applicant",
+    )
+    count(
+        "SELECT COUNT(*) FROM information_schema.COLUMNS "
+        "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='portaria_clarification_tickets' "
+        "AND COLUMN_NAME='active_applicant_discord_user_id' "
+        "AND EXTRA LIKE '%GENERATED%'",
+        1, "active applicant is a generated nullable unique-key component",
     )
     count(
         "SELECT COUNT(*) FROM information_schema.COLUMNS "
