@@ -14,7 +14,7 @@ references continue to work.
 
 ## Migration
 
-`V20261027_003__expand_user_ban_reasons.sql`, owned by Database:
+`V20261029_002__expand_user_ban_reasons.sql`, owned by Database:
 
 - widens `reason` to `VARCHAR(2048) NOT NULL`;
 - removes the semantically incorrect `unique_ban` constraint;
