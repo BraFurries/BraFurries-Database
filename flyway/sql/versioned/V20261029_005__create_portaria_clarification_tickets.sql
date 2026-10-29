@@ -40,6 +40,8 @@ CREATE TABLE `portaria_clarification_tickets` (
   `closed_by_discord_user_id` BIGINT(20) NULL,
   `close_reason` VARCHAR(1024) NULL,
   `last_error_code` VARCHAR(64) NULL,
+  `opening_attempted_at` DATETIME(6) NULL,
+  `closing_attempted_at` DATETIME(6) NULL,
   `version` BIGINT(20) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   -- Exact one ticket per submission, across retries and restarts.
