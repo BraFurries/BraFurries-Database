@@ -66,7 +66,7 @@ def run() -> None:
         "SELECT COUNT(*) FROM information_schema.TABLES "
         "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_TYPE='BASE TABLE' "
         "AND TABLE_NAME<>'flyway_schema_history'",
-        125, "107 legacy plus recruitment tables, notices, read receipts and appeals",
+        126, "107 legacy plus recruitment tables, notices, appeals, and Portaria clarification tickets",
     )
     count(
         "SELECT COUNT(*) FROM flyway_schema_history "
