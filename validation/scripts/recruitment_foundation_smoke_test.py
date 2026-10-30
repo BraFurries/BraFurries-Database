@@ -54,6 +54,48 @@ def rejected(sql: str, description: str, *, error_code: int) -> None:
     print(f"PASS: {description}")
 
 
+def assert_portaria_clarification_uniqueness() -> None:
+    """Real MariaDB semantics: only one unfinished ticket, unlimited closed history."""
+    execute("INSERT INTO communities (id,name) VALUES (90501,'Ticket Fixture')")
+    execute("INSERT INTO community_discord (id,community_id,name,guild_id) "
+            "VALUES (90501,90501,'Ticket Guild',90501001)")
+    execute("INSERT INTO form_flows (id,name,type,server_guild_id,target_channel_id) "
+            "VALUES (90501,'Portaria fixture','portaria',90501001,90501999)")
+    execute("INSERT INTO form_submissions (id,flow_id,user_id,guild_id,channel_id) "
+            "VALUES (90501,90501,90501777,90501001,90501999),"
+            "(90502,90501,90501777,90501001,90501999)")
+    execute("INSERT INTO portaria_clarification_tickets "
+            "(id,community_id,guild_id,submission_id,applicant_discord_user_id,"
+            "requested_by_discord_user_id,reason) "
+            "VALUES (90501,90501,90501001,90501,90501777,90501888,"
+            "'Esclarecimento inicial de portaria')")
+    rejected(
+        "INSERT INTO portaria_clarification_tickets "
+        "(id,community_id,guild_id,submission_id,applicant_discord_user_id,"
+        "requested_by_discord_user_id,reason) "
+        "VALUES (90502,90501,90501001,90502,90501777,90501888,"
+        "'Segundo ticket indevido ainda aberto')",
+        "Unique generated key rejects parallel applicant tickets across submissions",
+        error_code=1062,
+    )
+    execute("UPDATE portaria_clarification_tickets SET status='CLOSED', "
+            "discord_channel_id=90501234,opened_at=UTC_TIMESTAMP(6),"
+            "closed_at=UTC_TIMESTAMP(6),"
+            "closed_by_discord_user_id=90501888,"
+            "close_reason='Conversa encerrada com atendimento concluido' "
+            "WHERE id=90501")
+    execute("INSERT INTO portaria_clarification_tickets "
+            "(id,community_id,guild_id,submission_id,applicant_discord_user_id,"
+            "requested_by_discord_user_id,reason) "
+            "VALUES (90502,90501,90501001,90502,90501777,90501888,"
+            "'Segundo atendimento depois do encerramento')")
+    count(
+        "SELECT COUNT(*) FROM portaria_clarification_tickets "
+        "WHERE community_id=90501 AND applicant_discord_user_id=90501777",
+        2, "closed history preserved while next ticket can open",
+    )
+
+
 def run() -> None:
     down()
     start_empty_database()
@@ -66,7 +108,38 @@ def run() -> None:
         "SELECT COUNT(*) FROM information_schema.TABLES "
         "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_TYPE='BASE TABLE' "
         "AND TABLE_NAME<>'flyway_schema_history'",
-        125, "107 legacy plus recruitment tables, notices, read receipts and appeals",
+        126, "107 legacy plus recruitment tables, notices, appeals, and Portaria clarification tickets",
+    )
+    count(
+        "SELECT COUNT(DISTINCT CONSTRAINT_NAME) FROM "
+        "information_schema.KEY_COLUMN_USAGE "
+        "WHERE TABLE_SCHEMA=DATABASE() "
+        "AND TABLE_NAME='portaria_clarification_tickets' "
+        "AND CONSTRAINT_NAME IN ('fk_pct_community_guild','fk_pct_submission_guild') "
+        "AND REFERENCED_TABLE_NAME IS NOT NULL",
+        2, "Portaria tickets have both composite Community/guild/submission foreign keys",
+    )
+    count(
+        "SELECT COUNT(*) FROM information_schema.STATISTICS "
+        "WHERE TABLE_SCHEMA=DATABASE() "
+        "AND TABLE_NAME='portaria_clarification_tickets' "
+        "AND INDEX_NAME='uq_pct_one_active_applicant' AND NON_UNIQUE=0",
+        3, "unique active-ticket key covers Community, guild and active applicant",
+    )
+    count(
+        "SELECT COUNT(*) FROM information_schema.COLUMNS "
+        "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='portaria_clarification_tickets' "
+        "AND COLUMN_NAME='active_applicant_discord_user_id' "
+        "AND EXTRA LIKE '%GENERATED%'",
+        1, "active applicant is a generated nullable unique-key component",
+    )
+    assert_portaria_clarification_uniqueness()
+    count(
+        "SELECT COUNT(*) FROM information_schema.COLUMNS "
+        "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='portaria_base_config' "
+        "AND COLUMN_NAME='clarification_tickets_enabled' "
+        "AND COLUMN_DEFAULT='0' AND IS_NULLABLE='NO'",
+        1, "Portaria clarification remains disabled by default",
     )
     count(
         "SELECT COUNT(*) FROM flyway_schema_history "

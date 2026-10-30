@@ -95,6 +95,23 @@ CREATE TABLE `form_flows` (
     KEY `idx_fixture_form_flows_guild_type` (`server_guild_id`, `type`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+-- TEST FIXTURE ONLY: minimal legacy form-submission table. The Portaria
+-- clarification migration adds the composite per-guild integrity key.
+CREATE TABLE `form_submissions` (
+    `id` INT(11) NOT NULL AUTO_INCREMENT,
+    `flow_id` INT(11) NOT NULL,
+    `user_id` BIGINT(20) NOT NULL,
+    `guild_id` BIGINT(20) NOT NULL,
+    `channel_id` BIGINT(20) NOT NULL,
+    `message_id` BIGINT(20) NULL,
+    `status` VARCHAR(20) NOT NULL DEFAULT 'pending',
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    KEY `idx_fixture_form_submissions_flow` (`flow_id`),
+    CONSTRAINT `fk_fixture_form_submissions_flow`
+        FOREIGN KEY (`flow_id`) REFERENCES `form_flows` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 INSERT INTO `users` (`id`, `display_name`) VALUES (77, 'Legacy Member');
 INSERT INTO `communities` (`id`, `name`) VALUES (77, 'Legacy Community');
 INSERT INTO `user_community_status` (`id`, `user_id`, `community_id`, `member_since`)
