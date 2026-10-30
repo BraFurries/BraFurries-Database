@@ -108,7 +108,7 @@ def run() -> None:
         "SELECT COUNT(*) FROM information_schema.TABLES "
         "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_TYPE='BASE TABLE' "
         "AND TABLE_NAME<>'flyway_schema_history'",
-        127, "legacy, recruitment, Portaria clarification, and temporary role grants",
+        126, "legacy, recruitment, Portaria clarification, and extended temporary role ledger",
     )
     count(
         "SELECT COUNT(DISTINCT CONSTRAINT_NAME) FROM "
@@ -137,15 +137,15 @@ def run() -> None:
     count(
         "SELECT COUNT(*) FROM information_schema.COLUMNS "
         "WHERE TABLE_SCHEMA=DATABASE() "
-        "AND TABLE_NAME='community_temporary_role_grants' "
+        "AND TABLE_NAME='user_temp_roles' "
         "AND COLUMN_NAME='active_discord_user_id' AND EXTRA LIKE '%GENERATED%'",
-        1, "active manual grant has a nullable generated unique-key component",
+        1, "active manual grant has a nullable generated key on the existing ledger",
     )
     count(
         "SELECT COUNT(*) FROM information_schema.STATISTICS "
         "WHERE TABLE_SCHEMA=DATABASE() "
         "AND TABLE_NAME='community_temporary_role_grants' "
-        "AND INDEX_NAME='uq_ctrg_active_target' AND NON_UNIQUE=0",
+        "AND INDEX_NAME='uq_utr_manual_active' AND NON_UNIQUE=0",
         4, "active manual-grant key includes Community, guild, user and role",
     )
     count(
@@ -153,8 +153,8 @@ def run() -> None:
         "information_schema.KEY_COLUMN_USAGE "
         "WHERE TABLE_SCHEMA=DATABASE() "
         "AND TABLE_NAME='community_temporary_role_grants' "
-        "AND CONSTRAINT_NAME='fk_ctrg_guild' AND REFERENCED_TABLE_NAME IS NOT NULL",
-        1, "manual grant has composite Community/guild foreign key",
+        "AND CONSTRAINT_NAME='fk_utr_guild' AND REFERENCED_TABLE_NAME IS NOT NULL",
+        1, "unified ledger has composite Community/guild foreign key",
     )
     count(
         "SELECT COUNT(*) FROM information_schema.COLUMNS "
