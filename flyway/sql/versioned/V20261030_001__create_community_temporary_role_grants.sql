@@ -40,7 +40,7 @@ CREATE TABLE community_temporary_role_grants (
   CONSTRAINT fk_ctrg_updater FOREIGN KEY (updated_by_user_id)
     REFERENCES users (id) ON UPDATE RESTRICT ON DELETE RESTRICT,
   CONSTRAINT ck_ctrg_status CHECK (status IN ('ACTIVE','CANCELLED','EXPIRED')),
-  CONSTRAINT ck_ctrg_sync CHECK (sync_status IN ('PENDING','APPLIED','FAILED')),
+  CONSTRAINT ck_ctrg_sync CHECK (sync_status IN ('PENDING','PROCESSING','APPLIED','FAILED')),
   CONSTRAINT ck_ctrg_owned CHECK (role_added_by_bot IN (0,1)),
   CONSTRAINT ck_ctrg_reason CHECK (CHAR_LENGTH(TRIM(reason)) BETWEEN 10 AND 200)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
