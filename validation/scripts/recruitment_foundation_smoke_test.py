@@ -108,7 +108,7 @@ def run() -> None:
         "SELECT COUNT(*) FROM information_schema.TABLES "
         "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_TYPE='BASE TABLE' "
         "AND TABLE_NAME<>'flyway_schema_history'",
-        126, "107 legacy plus recruitment tables, notices, appeals, and Portaria clarification tickets",
+        127, "legacy, recruitment, Portaria clarification, and temporary role grants",
     )
     count(
         "SELECT COUNT(DISTINCT CONSTRAINT_NAME) FROM "
@@ -134,6 +134,28 @@ def run() -> None:
         1, "active applicant is a generated nullable unique-key component",
     )
     assert_portaria_clarification_uniqueness()
+    count(
+        "SELECT COUNT(*) FROM information_schema.COLUMNS "
+        "WHERE TABLE_SCHEMA=DATABASE() "
+        "AND TABLE_NAME='community_temporary_role_grants' "
+        "AND COLUMN_NAME='active_discord_user_id' AND EXTRA LIKE '%GENERATED%'",
+        1, "active manual grant has a nullable generated unique-key component",
+    )
+    count(
+        "SELECT COUNT(*) FROM information_schema.STATISTICS "
+        "WHERE TABLE_SCHEMA=DATABASE() "
+        "AND TABLE_NAME='community_temporary_role_grants' "
+        "AND INDEX_NAME='uq_ctrg_active_target' AND NON_UNIQUE=0",
+        4, "active manual-grant key includes Community, guild, user and role",
+    )
+    count(
+        "SELECT COUNT(DISTINCT CONSTRAINT_NAME) FROM "
+        "information_schema.KEY_COLUMN_USAGE "
+        "WHERE TABLE_SCHEMA=DATABASE() "
+        "AND TABLE_NAME='community_temporary_role_grants' "
+        "AND CONSTRAINT_NAME='fk_ctrg_guild' AND REFERENCED_TABLE_NAME IS NOT NULL",
+        1, "manual grant has composite Community/guild foreign key",
+    )
     count(
         "SELECT COUNT(*) FROM information_schema.COLUMNS "
         "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='portaria_base_config' "
