@@ -1,6 +1,6 @@
 # Temporary Discord roles — unified ledger V1 (transitional production rollout)
 
-Status: **planned; NOT applied to production**.
+Status: **schema SQL manually applied in production on 2026-10-30**. Operator reported postflight approval; application merges/deploys were still pending at that checkpoint. Do **not** run the migration again. Production Flyway history has not been adopted; preserve the manual pre-baseline exception.
 
 ## Scope and evidence
 
