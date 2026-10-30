@@ -96,14 +96,90 @@ def assert_portaria_clarification_uniqueness() -> None:
     )
 
 
+
+def assert_unified_temp_roles() -> None:
+    """Legacy reward survives in-place DDL; manual history shares exactly one table."""
+    count(
+        "SELECT COUNT(*) FROM user_temp_roles WHERE id=90503 "
+        "AND community_id=90503 AND guild_id=90503001 "
+        "AND discord_user_id=90503777 AND grant_source='LEGACY' "
+        "AND disc_community_id=90503 AND disc_user_id=90503 AND status='ACTIVE'",
+        1, "existing legacy grant and identity foreign keys survive migration",
+    )
+    execute(
+        "INSERT INTO user_temp_roles "
+        "(disc_community_id,disc_user_id,community_id,guild_id,discord_user_id,"
+        "role_id,expiring_date,reason,request_id,grant_source,sync_status,"
+        "created_by_user_id,updated_by_user_id) VALUES "
+        "(90503,NULL,90503,90503001,90503777,90503444,'2030-01-02',"
+        "'Concessao excepcional autorizada','c7628626-2645-4dfa-9fcd-000000000001',"
+        "'MANUAL','PENDING',90503,90503)"
+    )
+    rejected(
+        "INSERT INTO user_temp_roles "
+        "(disc_community_id,disc_user_id,community_id,guild_id,discord_user_id,"
+        "role_id,expiring_date,reason,request_id,grant_source,sync_status,"
+        "created_by_user_id,updated_by_user_id) VALUES "
+        "(90503,NULL,90503,90503001,90503777,90503444,'2030-01-03',"
+        "'Outra concessao indevida','c7628626-2645-4dfa-9fcd-000000000002',"
+        "'MANUAL','PENDING',90503,90503)",
+        "only one active manual grant for a community/guild/user/role",
+        error_code=1062,
+    )
+    count(
+        "SELECT COUNT(*) FROM user_temp_roles WHERE disc_community_id=90503",
+        2, "manual grant and legacy reward coexist in the unified ledger",
+    )
+    execute(
+        "UPDATE user_temp_roles SET status='CANCELLED' "
+        "WHERE grant_source='MANUAL' AND disc_community_id=90503"
+    )
+    execute(
+        "INSERT INTO user_temp_roles "
+        "(disc_community_id,disc_user_id,community_id,guild_id,discord_user_id,"
+        "role_id,expiring_date,reason,request_id,grant_source,sync_status,"
+        "created_by_user_id,updated_by_user_id) VALUES "
+        "(90503,NULL,90503,90503001,90503777,90503444,'2030-01-03',"
+        "'Nova concessao excepcional','c7628626-2645-4dfa-9fcd-000000000003',"
+        "'MANUAL','PENDING',90503,90503)"
+    )
+    count(
+        "SELECT COUNT(*) FROM user_temp_roles WHERE disc_community_id=90503",
+        3, "canceled manual grant remains in history after a new grant opens",
+    )
+    count(
+        "SELECT COUNT(*) FROM information_schema.TABLES "
+        "WHERE TABLE_SCHEMA=DATABASE() "
+        "AND TABLE_NAME='community_temporary_role_grants'",
+        0, "there is no shadow manual role grant table",
+    )
+
+
 def run() -> None:
     down()
     start_empty_database()
+    # Seed one legacy grant before this migration, proving preservation
+    # of real foreign keys and backfill of canonical Discord IDs.
+    compose(
+        "run", "--rm", "--no-deps", "flyway",
+        "-locations=filesystem:/flyway/baseline,filesystem:/flyway/official",
+        "-target=20261029.005", "migrate",
+    )
+    execute("INSERT INTO communities (id,name) VALUES (90503,'Legacy Role Fixture')")
+    execute("INSERT INTO community_discord (id,community_id,name,guild_id) "
+            "VALUES (90503,90503,'Legacy Guild',90503001)")
+    execute("INSERT INTO users (id,username) VALUES (90503,'legacy_role_fixture')")
+    execute("INSERT INTO user_discord (id,user_id,discord_user_id,username) "
+            "VALUES (90503,90503,90503777,'legacy_member')")
+    execute("INSERT INTO user_temp_roles "
+            "(id,disc_community_id,disc_user_id,role_id,expiring_date,reason) "
+            "VALUES (90503,90503,90503,90503444,'2030-01-01','Legacy reward')")
     compose(
         "run", "--rm", "--no-deps", "flyway",
         "-locations=filesystem:/flyway/baseline,filesystem:/flyway/official",
         "migrate",
     )
+    assert_unified_temp_roles()
     count(
         "SELECT COUNT(*) FROM information_schema.TABLES "
         "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_TYPE='BASE TABLE' "
