@@ -182,6 +182,38 @@ CREATE TABLE `community_discord` (
         ON UPDATE RESTRICT ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+-- TEST FIXTURE ONLY: legacy Discord identity and temporary reward shape.
+-- Required by the in-place unified role-ledger migration; matches the real
+-- baseline's FK relations but adds no production tables.
+CREATE TABLE `user_discord` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL,
+  `discord_user_id` bigint(20) NOT NULL DEFAULT 0,
+  `username` varchar(32) NOT NULL,
+  `display_name` varchar(100) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `discord_user_id` (`discord_user_id`),
+  KEY `discord_user_user_id_users_id` (`user_id`),
+  CONSTRAINT `discord_user_user_id_users_id`
+    FOREIGN KEY (`user_id`) REFERENCES `users` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE `user_temp_roles` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `disc_community_id` int(11) NOT NULL,
+  `disc_user_id` int(11) NOT NULL,
+  `role_id` bigint(20) NOT NULL DEFAULT 0,
+  `expiring_date` datetime NOT NULL,
+  `reason` varchar(100) NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `temp_roles_disc_community_id_discord_servers_id` (`disc_community_id`),
+  KEY `temp_roles_disc_user_id_discord_user_id` (`disc_user_id`),
+  CONSTRAINT `temp_roles_disc_community_id_discord_servers_id`
+    FOREIGN KEY (`disc_community_id`) REFERENCES `community_discord` (`id`),
+  CONSTRAINT `temp_roles_disc_user_id_discord_user_id`
+    FOREIGN KEY (`disc_user_id`) REFERENCES `user_discord` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 -- TEST FIXTURE ONLY: observed legacy VIP custom-role shape before
 -- color2/role_id were formalized by the official VIP migration.
 CREATE TABLE IF NOT EXISTS `user_custom_roles` (
