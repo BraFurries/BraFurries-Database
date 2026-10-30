@@ -18,8 +18,8 @@ ALTER TABLE user_temp_roles
   ADD COLUMN last_error_code VARCHAR(64) NULL,
   ADD COLUMN created_by_user_id INT(11) NULL,
   ADD COLUMN updated_by_user_id INT(11) NULL,
-  ADD COLUMN created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-  ADD COLUMN updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)
+  ADD COLUMN created_at DATETIME(6) NULL DEFAULT CURRENT_TIMESTAMP(6),
+  ADD COLUMN updated_at DATETIME(6) NULL DEFAULT CURRENT_TIMESTAMP(6)
     ON UPDATE CURRENT_TIMESTAMP(6),
   ADD COLUMN last_checked_at DATETIME(6) NULL,
   ADD COLUMN applied_at DATETIME(6) NULL,
@@ -35,7 +35,9 @@ JOIN user_discord ud ON ud.id=t.disc_user_id
 SET t.community_id=cd.community_id,
     t.guild_id=cd.guild_id,
     t.discord_user_id=ud.discord_user_id,
-    t.applied_at=t.created_at;
+    -- Preexisting rows lack event timestamps; do not invent a grant or apply date.
+    t.created_at=NULL,
+    t.updated_at=NULL;
 
 ALTER TABLE user_temp_roles
   ADD UNIQUE KEY uq_utr_manual_request (community_id,request_id),
