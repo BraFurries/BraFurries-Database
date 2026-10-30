@@ -9,6 +9,7 @@ CREATE TABLE community_temporary_role_grants (
   role_id BIGINT(20) NOT NULL,
   expires_at DATETIME(6) NOT NULL,
   reason VARCHAR(200) NOT NULL,
+  request_id CHAR(36) NOT NULL,
   status VARCHAR(12) NOT NULL DEFAULT 'ACTIVE',
   sync_status VARCHAR(12) NOT NULL DEFAULT 'PENDING',
   role_added_by_bot TINYINT(1) NOT NULL DEFAULT 0,
@@ -25,6 +26,7 @@ CREATE TABLE community_temporary_role_grants (
     CASE WHEN status='ACTIVE' THEN discord_user_id ELSE NULL END
   ) PERSISTENT,
   PRIMARY KEY (id),
+  UNIQUE KEY uq_ctrg_request (community_id,request_id),
   UNIQUE KEY uq_ctrg_active_target
     (community_id, guild_id, active_discord_user_id, role_id),
   KEY idx_ctrg_reconcile (sync_status, updated_at, id),
