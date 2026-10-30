@@ -106,6 +106,11 @@ def assert_unified_temp_roles() -> None:
         "AND disc_community_id=90503 AND disc_user_id=90503 AND status='ACTIVE'",
         1, "existing legacy grant and identity foreign keys survive migration",
     )
+    count(
+        "SELECT COUNT(*) FROM user_temp_roles WHERE id=90503 "
+        "AND created_at IS NULL AND updated_at IS NULL AND applied_at IS NULL",
+        1, "legacy grant must not acquire fictional creation or Discord application dates",
+    )
     execute(
         "INSERT INTO user_temp_roles "
         "(disc_community_id,disc_user_id,community_id,guild_id,discord_user_id,"
