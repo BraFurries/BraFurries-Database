@@ -220,7 +220,7 @@ def run() -> None:
     count(
         "SELECT COUNT(*) FROM information_schema.STATISTICS "
         "WHERE TABLE_SCHEMA=DATABASE() "
-        "AND TABLE_NAME='community_temporary_role_grants' "
+        "AND TABLE_NAME='user_temp_roles' "
         "AND INDEX_NAME='uq_utr_manual_active' AND NON_UNIQUE=0",
         4, "active manual-grant key includes Community, guild, user and role",
     )
@@ -228,7 +228,7 @@ def run() -> None:
         "SELECT COUNT(DISTINCT CONSTRAINT_NAME) FROM "
         "information_schema.KEY_COLUMN_USAGE "
         "WHERE TABLE_SCHEMA=DATABASE() "
-        "AND TABLE_NAME='community_temporary_role_grants' "
+        "AND TABLE_NAME='user_temp_roles' "
         "AND CONSTRAINT_NAME='fk_utr_guild' AND REFERENCED_TABLE_NAME IS NOT NULL",
         1, "unified ledger has composite Community/guild foreign key",
     )
