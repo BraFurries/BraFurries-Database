@@ -65,6 +65,9 @@ jobs:
       - name: Verify BraFurries-exclusive commerce grants in disposable MariaDB
         run: python validation/scripts/commerce_access_smoke_test.py
 
+      - name: Verify BraFurries private commercial catalog in disposable MariaDB
+        run: python validation/scripts/commerce_catalog_smoke_test.py
+
       - name: Run disposable Flyway smoke test
         run: python validation/scripts/smoke_test.py
 
