@@ -93,6 +93,15 @@ def verify() -> None:
              unit_price_snapshot,line_gross_amount,line_production_cost_snapshot)
         VALUES (95001,95001,95001,1,60.00,60.00,25.00)
     """, "duplicate batch in same sale is rejected")
+    query("UPDATE commerce_production_batches SET sold_quantity=2 WHERE id=95001")
+    require_equal(
+        query("SELECT quantity-sold_quantity FROM commerce_production_batches WHERE id=95001"),
+        "8", "stock counter reflects confirmed sales"
+    )
+    expect_sql_failure("""
+        UPDATE commerce_production_batches SET sold_quantity=11 WHERE id=95001
+    """, "stock counter cannot exceed produced quantity")
+
     expect_sql_failure("""
         INSERT INTO commerce_sale_items
             (sale_id,product_id,production_batch_id,quantity,
@@ -182,6 +191,17 @@ def verify() -> None:
     """)
     require_equal(query("SELECT COUNT(*) FROM commerce_finance_audit"),
                   "1","audit row exists")
+    query("""
+        UPDATE commerce_sales
+           SET status='CANCELLED',cancelled_by_user_id=95001,
+               cancelled_at=CURRENT_TIMESTAMP(6),cancellation_reason='Fixture'
+         WHERE id=95001
+    """)
+    query("UPDATE commerce_production_batches SET sold_quantity=0 WHERE id=95001")
+    require_equal(
+        query("SELECT quantity-sold_quantity FROM commerce_production_batches WHERE id=95001"),
+        "10", "cancelled sale restores batch stock under the same transaction"
+    )
     print("PASS: finance ledger constraints, idempotent keys, royalty reversal, monthly uniqueness")
 
 def main() -> int:
