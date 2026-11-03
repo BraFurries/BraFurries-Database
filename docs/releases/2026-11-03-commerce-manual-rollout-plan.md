@@ -112,7 +112,7 @@ SELECT (SELECT COUNT(*) FROM commerce_cash_movements) AS cash_movements,
        (SELECT COUNT(*) FROM commerce_payments) AS payouts;
 ```
 
-Expectativas para instalação nova: **21 tabelas comerciais**; nenhum `community_id`; todas as 9 colunas verificadas presentes; `CASHFLOW_MANAGE` permitido nas duas tabelas ACL; contagens iniciais **zero**. Se diferir, bloquear a API e investigar.
+Expectativas para instalação nova: **21 tabelas comerciais**; nenhum `community_id`; todas as colunas verificadas presentes; `CASHFLOW_MANAGE` permitido nas duas tabelas ACL; contagens iniciais **zero**. Se diferir, bloquear a API e investigar.
 
 ## 4. Depois do schema
 
