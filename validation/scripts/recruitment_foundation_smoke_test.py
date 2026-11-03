@@ -189,7 +189,7 @@ def run() -> None:
         "SELECT COUNT(*) FROM information_schema.TABLES "
         "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_TYPE='BASE TABLE' "
         "AND TABLE_NAME<>'flyway_schema_history'",
-        126, "legacy, recruitment, Portaria clarification, and extended temporary role ledger",
+        130, "legacy, recruitment, Portaria clarification, temporary roles, and commercial access",
     )
     count(
         "SELECT COUNT(DISTINCT CONSTRAINT_NAME) FROM "
