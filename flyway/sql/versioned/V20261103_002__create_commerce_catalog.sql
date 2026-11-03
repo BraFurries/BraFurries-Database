@@ -106,9 +106,11 @@ CREATE TABLE `commerce_artwork_contracts` (
         (`royalty_method_snapshot` = 'NONE'
             AND `royalty_percent_snapshot` IS NULL AND `royalty_fixed_snapshot` IS NULL)
         OR (`royalty_method_snapshot` IN ('PERCENT_GROSS','PERCENT_NET')
-            AND `royalty_percent_snapshot` BETWEEN 0 AND 100 AND `royalty_fixed_snapshot` IS NULL)
+            AND `royalty_percent_snapshot` IS NOT NULL AND `royalty_percent_snapshot` BETWEEN 0 AND 100
+            AND `royalty_fixed_snapshot` IS NULL)
         OR (`royalty_method_snapshot` IN ('FIXED_UNIT','FIXED_MONTH')
-            AND `royalty_fixed_snapshot` >= 0 AND `royalty_percent_snapshot` IS NULL)
+            AND `royalty_fixed_snapshot` IS NOT NULL AND `royalty_fixed_snapshot` >= 0
+            AND `royalty_percent_snapshot` IS NULL)
     ),
     CONSTRAINT `ck_cac_one_time` CHECK (`one_time_amount` >= 0),
     CONSTRAINT `ck_cac_signed_file` CHECK (`signed_bytes` > 0 AND CHAR_LENGTH(`signed_sha256`) = 64)
