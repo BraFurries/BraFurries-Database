@@ -47,6 +47,7 @@ CREATE TABLE `commerce_artworks` (
     `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     `updated_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
     PRIMARY KEY (`id`),
+    UNIQUE KEY `uq_ca_id_artist` (`id`, `artist_user_id`),
     KEY `idx_ca_artist_status` (`artist_user_id`, `status`),
     KEY `idx_ca_status` (`status`, `id`),
     CONSTRAINT `fk_ca_artist` FOREIGN KEY (`artist_user_id`)
@@ -87,8 +88,9 @@ CREATE TABLE `commerce_artwork_contracts` (
     KEY `idx_cac_artwork_created` (`artwork_id`, `created_at`),
     KEY `idx_cac_artist` (`artist_user_id`),
     KEY `fk_cac_template` (`template_id`),
-    CONSTRAINT `fk_cac_artwork` FOREIGN KEY (`artwork_id`)
-        REFERENCES `commerce_artworks` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT,
+    CONSTRAINT `fk_cac_artwork_artist` FOREIGN KEY (`artwork_id`, `artist_user_id`)
+        REFERENCES `commerce_artworks` (`id`, `artist_user_id`)
+        ON UPDATE RESTRICT ON DELETE RESTRICT,
     CONSTRAINT `fk_cac_template` FOREIGN KEY (`template_id`)
         REFERENCES `commerce_contract_templates` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT,
     CONSTRAINT `fk_cac_artist` FOREIGN KEY (`artist_user_id`)
@@ -96,6 +98,9 @@ CREATE TABLE `commerce_artwork_contracts` (
     CONSTRAINT `fk_cac_creator` FOREIGN KEY (`created_by_user_id`)
         REFERENCES `users` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT,
     CONSTRAINT `ck_cac_status` CHECK (`status` IN ('ACTIVE','TERMINATED')),
+    CONSTRAINT `ck_cac_modality` CHECK (`modality_snapshot` IN
+        ('ONE_TIME_FEE','RIGHTS_ASSIGNMENT','EXCLUSIVE_LICENSE',
+         'NONEXCLUSIVE_LICENSE','ROYALTY','HYBRID')),
     CONSTRAINT `ck_cac_dates` CHECK (`effective_until` IS NULL OR `effective_until` >= `effective_from`),
     CONSTRAINT `ck_cac_royalties` CHECK (
         (`royalty_method_snapshot` = 'NONE'
