@@ -103,9 +103,14 @@ def validate_catalog() -> None:
     """)
     query("""
        INSERT INTO commerce_products
-          (id,sku,name,estimated_unit_cost,suggested_price,created_by_user_id)
-       VALUES (92001,'SKU-92001','Printed mug',24.50,64.90,92001)
+          (id,sku,name,estimated_unit_cost,suggested_price,preferred_supplier_id,created_by_user_id)
+       VALUES (92001,'SKU-92001','Printed mug',24.50,64.90,92001,92001)
     """)
+    expect_sql_failure("""
+       INSERT INTO commerce_products
+          (sku,name,estimated_unit_cost,suggested_price,preferred_supplier_id,created_by_user_id)
+       VALUES ('WRONG-SUPPLIER','Invalid supplier',24.50,64.90,999999,92001)
+    """, "product cannot reference an unknown preferred supplier")
     query("""
        INSERT INTO commerce_product_artworks
           (product_id,artwork_id,royalty_allocation_percent,created_by_user_id)
