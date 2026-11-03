@@ -139,14 +139,18 @@ CREATE TABLE `commerce_products` (
     `description` TEXT NULL,
     `estimated_unit_cost` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
     `suggested_price` DECIMAL(18,2) NOT NULL,
+    `preferred_supplier_id` BIGINT UNSIGNED NULL,
     `active` TINYINT(1) NOT NULL DEFAULT 1,
     `created_by_user_id` INT(11) NOT NULL,
     `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     PRIMARY KEY (`id`),
     UNIQUE KEY `uq_cp_sku` (`sku`),
     KEY `idx_cp_active` (`active`, `id`),
+    KEY `idx_cp_supplier` (`preferred_supplier_id`),
     CONSTRAINT `fk_cp_author` FOREIGN KEY (`created_by_user_id`)
         REFERENCES `users` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT,
+    CONSTRAINT `fk_cp_supplier` FOREIGN KEY (`preferred_supplier_id`)
+        REFERENCES `commerce_suppliers` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT,
     CONSTRAINT `ck_cp_est_cost` CHECK (`estimated_unit_cost` >= 0),
     CONSTRAINT `ck_cp_price` CHECK (`suggested_price` >= 0)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
