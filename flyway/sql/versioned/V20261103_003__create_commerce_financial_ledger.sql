@@ -52,9 +52,14 @@ CREATE TABLE `commerce_sales` (
     )
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- Validate that a stocked batch is the same product as the sale item.
+-- Batch stock is a real locked counter. A SUM of sale items under
+-- MariaDB REPEATABLE READ may observe an old transaction snapshot after a
+-- SELECT FOR UPDATE, allowing concurrent oversell; do NOT use that approach.
+-- Existing catalog tables are empty before this rollout.
 ALTER TABLE `commerce_production_batches`
-    ADD UNIQUE KEY `uq_cpb_id_product` (`id`, `product_id`);
+    ADD COLUMN `sold_quantity` INT UNSIGNED NOT NULL DEFAULT 0,
+    ADD UNIQUE KEY `uq_cpb_id_product` (`id`, `product_id`),
+    ADD CONSTRAINT `ck_cpb_sold_stock` CHECK (`sold_quantity` <= `quantity`);
 
 CREATE TABLE `commerce_sale_items` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
