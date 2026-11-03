@@ -108,6 +108,8 @@ CREATE TABLE `commerce_cash_movements` (
     ),
     CONSTRAINT `ck_ccm_contribution` CHECK (
         (`movement_type` = 'CONTRIBUTION'
+          AND `contributor_type` IS NOT NULL
+          AND `contribution_nature` IS NOT NULL
           AND `contributor_type` IN ('OWNER','STAFF','COMMUNITY_MEMBER','EXTERNAL')
           AND `contribution_nature` IN ('NON_REPAYABLE','REPAYABLE'))
         OR (`movement_type` <> 'CONTRIBUTION'
