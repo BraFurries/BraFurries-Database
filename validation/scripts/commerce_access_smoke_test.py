@@ -79,6 +79,25 @@ def verify_access_tables() -> None:
         "(role_id, permission_code, granted_by_user_id) "
         "VALUES (9011, 'PRODUCTS_MANAGE', 9011)"
     )
+    # The new administrative area permission follows exactly the same
+    # owner-approved person and official Time-role constraints as commerce.
+    query(
+        "INSERT INTO commerce_user_permissions "
+        "(user_id, permission_code, granted_by_user_id) "
+        "VALUES (9012, 'PARTNERS_MANAGE', 9011)"
+    )
+    query(
+        "INSERT INTO commerce_role_permissions "
+        "(role_id, permission_code, granted_by_user_id) "
+        "VALUES (9011, 'PARTNERS_MANAGE', 9011)"
+    )
+    expect_sql_failure(
+        "INSERT INTO commerce_user_permissions "
+        "(user_id, permission_code, granted_by_user_id) "
+        "VALUES (9013, 'PARTNERS_MANAGE', 9011)",
+        "unapproved person cannot receive partner management rights"
+    )
+
     expect_sql_failure(
         "INSERT INTO commerce_role_permissions "
         "(role_id, permission_code, granted_by_user_id) "
