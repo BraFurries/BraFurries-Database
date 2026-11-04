@@ -18,13 +18,17 @@ def verify() -> None:
         "SELECT COUNT(*) FROM information_schema.COLUMNS "
         "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='commerce_cash_movements' "
         "AND COLUMN_NAME='community_id'"), "0", "outside all Community tenants")
-    for table in ["commerce_user_permissions","commerce_role_permissions"]:
+    require_equal(query(
+        "SELECT COUNT(*) FROM platform_permission_catalog "
+        "WHERE code='CASHFLOW_MANAGE' AND area='COMMERCE' AND active=1"),
+        "1", "cashflow permission moved to active platform catalog")
+    for table in ("platform_user_permissions", "platform_role_permissions"):
         require_equal(query(
-            "SELECT COUNT(*) FROM information_schema.CHECK_CONSTRAINTS "
-            "WHERE CONSTRAINT_SCHEMA=DATABASE() AND CONSTRAINT_NAME="
-            f"'{('ck_cup_permission' if table=='commerce_user_permissions' else 'ck_crp_permission')}' "
-            "AND CHECK_CLAUSE LIKE '%CASHFLOW_MANAGE%'"),
-            "1", f"{table} authorizes only known codes including CASHFLOW_MANAGE")
+            "SELECT COUNT(*) FROM information_schema.KEY_COLUMN_USAGE "
+            "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='" + table + "' "
+            "AND REFERENCED_TABLE_NAME='platform_permission_catalog' "
+            "AND COLUMN_NAME='permission_code'"),
+            "1", f"{table} references the shared platform catalog")
 
     query("""
         INSERT INTO users (id,display_name)
