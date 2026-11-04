@@ -332,3 +332,35 @@ INSERT INTO `backup_server_settings`
      `periodic_backups_enabled`, `periodicity_minutes`)
 VALUES
     (9401, 99001, 7, 2, 1, 1440);
+
+
+-- TEST FIXTURE ONLY: legacy partner records exist on production already.
+-- This is NOT a production migration. The official migration alters these
+-- historical tables instead of creating parallel replacement tables.
+CREATE TABLE `partners` (
+  `id` INT(11) NOT NULL AUTO_INCREMENT,
+  `name` VARCHAR(64) NOT NULL,
+  `status` VARCHAR(32) NOT NULL DEFAULT 'active',
+  `website_url` VARCHAR(1024) NULL,
+  `image_url` VARCHAR(1024) NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE `partner_external_links` (
+  `id` INT(11) NOT NULL AUTO_INCREMENT,
+  `partner_id` INT(11) NOT NULL,
+  `type` VARCHAR(32) NOT NULL,
+  `label` VARCHAR(128) NULL,
+  `url` VARCHAR(1024) NOT NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP(),
+  PRIMARY KEY (`id`),
+  KEY `idx_partner_external_links_partner` (`partner_id`),
+  CONSTRAINT `fk_partner_external_links_partner`
+    FOREIGN KEY (`partner_id`) REFERENCES `partners` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+INSERT INTO `partners` (`id`, `name`, `status`, `website_url`)
+VALUES (97001, 'Parceiro legado', 'active', 'https://legacy.example');
+
+INSERT INTO `partner_external_links` (`id`, `partner_id`, `type`, `label`, `url`)
+VALUES (97001, 97001, 'discord', 'Servidor', 'https://discord.gg/example');
