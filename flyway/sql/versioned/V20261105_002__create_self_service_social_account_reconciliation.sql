@@ -6,7 +6,9 @@ ALTER TABLE `users`
     ADD COLUMN `auth_version` BIGINT(20) NOT NULL DEFAULT 0,
     ADD KEY `idx_users_merged_into` (`merged_into_user_id`),
     ADD CONSTRAINT `fk_users_merged_into` FOREIGN KEY (`merged_into_user_id`)
-        REFERENCES `users` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT;
+        REFERENCES `users` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT,
+    ADD CONSTRAINT `ck_users_not_merged_into_self`
+        CHECK (`merged_into_user_id` IS NULL OR `merged_into_user_id` <> `id`);
 
 -- Provider subjects, not e-mail strings, are the stable OAuth identifiers.
 CREATE TABLE `user_social_identities` (
