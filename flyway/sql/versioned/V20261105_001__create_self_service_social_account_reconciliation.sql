@@ -3,6 +3,7 @@
 -- An absorbed user remains as an inoperative provenance alias, not a login identity.
 ALTER TABLE `users`
     ADD COLUMN `merged_into_user_id` INT(11) NULL,
+    ADD COLUMN `auth_version` BIGINT(20) NOT NULL DEFAULT 0,
     ADD KEY `idx_users_merged_into` (`merged_into_user_id`),
     ADD CONSTRAINT `fk_users_merged_into` FOREIGN KEY (`merged_into_user_id`)
         REFERENCES `users` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT,
