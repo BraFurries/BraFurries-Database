@@ -24,29 +24,22 @@ def verify() -> None:
         "VALUES (99212,'google','google-sub-99211')",
         "the same verified Google subject cannot belong to different users",
     )
-    expect_sql_failure(
-        "INSERT INTO user_social_identities "
-        "(user_id,provider,provider_subject) "
-        "VALUES (99211,'google','another-google-sub')",
-        "one Google identity per canonical account",
-    )
+    # A verified user may control several Discord/Google subjects. Their
+    # provider+subject pair remains globally unique across all users.
+    query("INSERT INTO user_social_identities "
+          "(user_id,provider,provider_subject) VALUES "
+          "(99211,'google','another-google-sub'),"
+          "(99211,'discord','discord-alt-99211'),"
+          "(99211,'discord','discord-main-99211')")
+    require_equal(query("SELECT COUNT(*) FROM user_social_identities WHERE user_id=99211"),
+                  "4", "multiple provider subjects may resolve to one functional user")
     expect_sql_failure(
         "INSERT INTO user_social_identities "
         "(user_id,provider,provider_subject) "
         "VALUES (99212,'unknown','untrusted-sub')",
         "unknown OAuth providers are not valid",
     )
-    query("INSERT INTO user_social_link_challenges "
-          "(token_hash,initiated_user_id,expires_at) VALUES "
-          "('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',"
-          "99211,DATE_ADD(NOW(),INTERVAL 15 MINUTE))")
-    expect_sql_failure(
-        "INSERT INTO user_social_link_challenges "
-        "(token_hash,initiated_user_id,expires_at) VALUES "
-        "('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',"
-        "99211,DATE_ADD(NOW(),INTERVAL 15 MINUTE))",
-        "OAuth challenge must not be reusable",
-    )
+    # OAuth challenge uniqueness and replay protection belong to Database #47.
     query("UPDATE users SET merged_into_user_id=99210 WHERE id=99211")
     query("INSERT INTO user_account_consolidations "
           "(canonical_user_id,absorbed_user_id,proved_discord_user_id,initiated_by_user_id) "
@@ -64,7 +57,7 @@ def verify() -> None:
         "VALUES (99212,99211,992100100100,99211)",
         "the same account cannot be consolidated twice",
     )
-    print("PASS: unique OAuth identity, one-time challenges, audited canonical account alias")
+    print("PASS: global OAuth subject uniqueness, multiple provider subjects, audited aliases")
 
 
 def main() -> int:
