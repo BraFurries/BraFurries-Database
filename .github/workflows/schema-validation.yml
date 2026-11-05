@@ -79,6 +79,9 @@ jobs:
       - name: Verify partner primary link on disposable MariaDB
         run: python validation/scripts/partner_primary_link_smoke_test.py
 
+      - name: Verify social account reconciliation schema on MariaDB
+        run: python validation/scripts/social_account_reconciliation_smoke_test.py
+
       - name: Run disposable Flyway smoke test
         run: python validation/scripts/smoke_test.py
 
