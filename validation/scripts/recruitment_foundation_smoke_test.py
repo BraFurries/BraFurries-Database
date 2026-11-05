@@ -185,11 +185,19 @@ def run() -> None:
         "migrate",
     )
     assert_unified_temp_roles()
+    # Database #47 adds the shared OAuth proof table; #48 uses it but does not
+    # recreate it. Both independent draft branches and the combined order must
+    # keep the expected table count deterministic.
+    discord_proof_tables = int(query(
+        "SELECT COUNT(*) FROM information_schema.TABLES "
+        "WHERE TABLE_SCHEMA=DATABASE() "
+        "AND TABLE_NAME='user_discord_link_challenges'"
+    ))
     count(
         "SELECT COUNT(*) FROM information_schema.TABLES "
         "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_TYPE='BASE TABLE' "
         "AND TABLE_NAME<>'flyway_schema_history'",
-        150, "legacy, recruitment, platform access and social reconciliation tables (without #47)",
+        150 + discord_proof_tables, "schema count includes the optional #47 proof migration",
     )
     count(
         "SELECT COUNT(DISTINCT CONSTRAINT_NAME) FROM "
