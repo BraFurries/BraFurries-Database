@@ -65,6 +65,9 @@ jobs:
       - name: Verify BraFurries-exclusive commerce grants in disposable MariaDB
         run: python validation/scripts/commerce_access_smoke_test.py
 
+      - name: Verify finance ACL migration preserves grants and audit in MariaDB
+        run: python validation/scripts/platform_access_migration_smoke_test.py
+
       - name: Verify BraFurries private commercial catalog in disposable MariaDB
         run: python validation/scripts/commerce_catalog_smoke_test.py
 
