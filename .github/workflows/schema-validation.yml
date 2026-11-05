@@ -76,6 +76,9 @@ jobs:
 
       - name: Validate cash movements and card fees on disposable MariaDB
         run: python validation/scripts/commerce_cashflow_smoke_test.py
+      - name: Verify Discord OAuth account recovery ticket storage
+        run: python validation/scripts/discord_link_challenge_smoke_test.py
+
       - name: Verify partner primary link on disposable MariaDB
         run: python validation/scripts/partner_primary_link_smoke_test.py
 
