@@ -11,9 +11,8 @@ from smoke_test import (
 
 
 def verify() -> None:
-    query("INSERT INTO users (id,display_name,email) VALUES "
-          "(99210,'Legacy Discord',NULL),(99211,'Google member','google@example.org'),"
-          "(99212,'Independent','independent@example.org')")
+    query("INSERT INTO users (id,display_name) VALUES "
+          "(99210,'Legacy Discord'),(99211,'Google member'),(99212,'Independent')")
     query("INSERT INTO user_discord (user_id,discord_user_id,username) "
           "VALUES (99210,992100100100,'old_discord')")
     query("INSERT INTO user_social_identities "
@@ -48,7 +47,7 @@ def verify() -> None:
         "99211,DATE_ADD(NOW(),INTERVAL 15 MINUTE))",
         "OAuth challenge must not be reusable",
     )
-    query("UPDATE users SET merged_into_user_id=99210, email=NULL WHERE id=99211")
+    query("UPDATE users SET merged_into_user_id=99210 WHERE id=99211")
     query("INSERT INTO user_account_consolidations "
           "(canonical_user_id,absorbed_user_id,proved_discord_user_id,initiated_by_user_id) "
           "VALUES (99210,99211,992100100100,99211)")
