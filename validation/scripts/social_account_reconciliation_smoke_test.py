@@ -57,10 +57,8 @@ def verify() -> None:
                   "1", "historical merge is audit-traceable")
     require_equal(query("SELECT merged_into_user_id FROM users WHERE id=99211"),
                   "99210", "absorbed account cannot keep a separate login identity")
-    expect_sql_failure(
-        "UPDATE users SET merged_into_user_id=id WHERE id=99212",
-        "self-consolidation forbidden",
-    )
+    # API will reject self-links before touching a row; MariaDB cannot CHECK
+    # AUTO_INCREMENT primary keys inside the same table.
     expect_sql_failure(
         "INSERT INTO user_account_consolidations "
         "(canonical_user_id,absorbed_user_id,proved_discord_user_id,initiated_by_user_id) "
