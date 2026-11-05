@@ -19,25 +19,14 @@ CREATE TABLE `user_social_identities` (
     `last_verified_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     PRIMARY KEY (`id`),
     UNIQUE KEY `uq_social_provider_subject` (`provider`, `provider_subject`),
-    UNIQUE KEY `uq_social_user_provider` (`user_id`, `provider`),
+    KEY `idx_social_user_provider` (`user_id`, `provider`),
     CONSTRAINT `fk_social_identity_user` FOREIGN KEY (`user_id`)
         REFERENCES `users` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT,
     CONSTRAINT `ck_social_provider` CHECK (`provider` IN ('google', 'discord'))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- Each authenticated session may initiate an expiring, single-use Discord proof.
--- Store only a SHA-256 hash of the random token; never put bearer/JWT in a link.
-CREATE TABLE `user_social_link_challenges` (
-    `token_hash` CHAR(64) NOT NULL,
-    `initiated_user_id` INT(11) NOT NULL,
-    `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-    `expires_at` DATETIME(6) NOT NULL,
-    `consumed_at` DATETIME(6) NULL,
-    PRIMARY KEY (`token_hash`),
-    KEY `idx_social_link_expires` (`expires_at`),
-    CONSTRAINT `fk_social_link_initiator` FOREIGN KEY (`initiated_user_id`)
-        REFERENCES `users` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+-- Reuse user_discord_link_challenges from Database #47 for verified Discord
+-- OAuth proof. A second challenge table would create competing state machines.
 
 -- Audit is immutable; preserve original and canonical IDs for forensic review.
 -- Absorbed users are not deleted because existing historical actor FKs refer to them.
