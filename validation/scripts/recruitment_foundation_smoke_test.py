@@ -193,11 +193,17 @@ def run() -> None:
         "WHERE TABLE_SCHEMA=DATABASE() "
         "AND TABLE_NAME='user_discord_link_challenges'"
     ))
+    community_transfer_audit_tables = int(query(
+        "SELECT COUNT(*) FROM information_schema.TABLES "
+        "WHERE TABLE_SCHEMA=DATABASE() "
+        "AND TABLE_NAME='user_community_membership_transfers'"
+    ))
     count(
         "SELECT COUNT(*) FROM information_schema.TABLES "
         "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_TYPE='BASE TABLE' "
         "AND TABLE_NAME<>'flyway_schema_history'",
-        150 + discord_proof_tables, "schema count includes the optional #47 proof migration",
+        150 + discord_proof_tables + community_transfer_audit_tables,
+        "schema count includes independently versioned proof and audit migrations",
     )
     count(
         "SELECT COUNT(DISTINCT CONSTRAINT_NAME) FROM "
