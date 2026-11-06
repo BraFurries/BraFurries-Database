@@ -15,10 +15,12 @@ def verify() -> None:
           "(99510,'Proven website'),(99511,'Proven Discord')")
     query("INSERT INTO communities (id,name) VALUES "
           "(99501,'Community A'),(99502,'Community B')")
+    # The official Flyway migration path can normalize legacy portaria
+    # columns independently of this audit's FK/identity contract. Insert
+    # only the stable member FK keys and date needed to validate provenance.
     query("INSERT INTO user_community_status "
-          "(id,user_id,community_id,member_since,approved,is_vip,is_partner,banned,"
-          "birthday_mentionable) VALUES "
-          "(99520,99510,99501,'2024-01-01 08:00:00',b'1',b'0',b'0',b'0',0)")
+          "(id,user_id,community_id,member_since) VALUES "
+          "(99520,99510,99501,'2024-01-01 08:00:00')")
     query("INSERT INTO user_account_consolidations "
           "(id,canonical_user_id,absorbed_user_id,proved_discord_user_id,initiated_by_user_id) "
           "VALUES (99530,99511,99510,995100000001,99510)")
