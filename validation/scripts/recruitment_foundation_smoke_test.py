@@ -201,7 +201,11 @@ def run() -> None:
             "SELECT COUNT(*) FROM information_schema.TABLES "
             "WHERE TABLE_SCHEMA=DATABASE() "
             "AND TABLE_NAME='user_social_onboarding_challenges'"
-        )), "schema count includes the optional OAuth proof and onboarding tables",
+        )) + int(query(
+            "SELECT COUNT(*) FROM information_schema.TABLES "
+            "WHERE TABLE_SCHEMA=DATABASE() "
+            "AND TABLE_NAME='user_social_login_events'"
+        )), "schema count includes optional OAuth proofs, onboarding and audit",
     )
     count(
         "SELECT COUNT(DISTINCT CONSTRAINT_NAME) FROM "
