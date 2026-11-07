@@ -2,12 +2,12 @@
 
 Este inventário não altera registros de usuários. Executar **apenas em ambiente controlado** após as migrations de identidade social e onboarding. Os resultados são agregados e não mostram e-mails, IDs do Discord ou subjects de OAuth.
 
-**Atenção:** o banco legado não dispõe de evidência positiva confiável de que o e-mail antigo foi escolhido e confirmado localmente. A ausência de token de verificação **não comprova** verificação. Não promover migração/DML automática a partir desses resultados. Interpretar os grupos com revisão de regras e dados reais antes de habilitar o novo comportamento.
+**Atenção:** o banco legado não dispõe de evidência positiva confiável de que o e-mail antigo foi escolhido e confirmado localmente. A ausência de token de verificação **não comprova** verificação. A migration `V20261107_002` cria `users.email_verified_at` inicialmente nulo; apenas uma confirmação de e-mail realizada pela BraFurries após a migration preenche esse campo. Não promover migração/DML automática a partir desses resultados. Interpretar os grupos com revisão de regras e dados reais antes de habilitar o novo comportamento.
 
 ```sql
 -- READ ONLY diagnostic. Run only after the #48 and #50 Flyway migrations.
 -- No user e-mail, OAuth subject or Discord ID is returned.
--- IMPORTANT: No surviving schema field proves that historical users.email was
+-- IMPORTANT: Pre-migration history does not prove that users.email was
 -- explicitly chosen and confirmed locally. Do NOT backfill verification from
 -- OAuth verified_email, password_hash, user_discord, or token absence.
 --
@@ -15,6 +15,7 @@ Este inventário não altera registros de usuários. Executar **apenas em ambien
 SELECT
     CASE
         WHEN u.merged_into_user_id IS NOT NULL THEN 'MERGED_ALIAS'
+        WHEN u.email_verified_at IS NOT NULL THEN 'LOCALLY_CONFIRMED_EMAIL'
         WHEN u.email IS NULL OR TRIM(u.email) = '' THEN 'NO_LOCAL_EMAIL'
         WHEN u.password_hash IS NULL OR TRIM(u.password_hash) = '' THEN 'NO_LOCAL_PASSWORD'
         WHEN EXISTS (
