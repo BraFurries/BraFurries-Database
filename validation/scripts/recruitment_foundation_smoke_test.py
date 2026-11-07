@@ -205,6 +205,10 @@ def run() -> None:
             "SELECT COUNT(*) FROM information_schema.TABLES "
             "WHERE TABLE_SCHEMA=DATABASE() "
             "AND TABLE_NAME='user_social_login_events'"
+        )) + int(query(
+            "SELECT COUNT(*) FROM information_schema.TABLES "
+            "WHERE TABLE_SCHEMA=DATABASE() "
+            "AND TABLE_NAME='user_social_login_proofs'"
         )), "schema count includes optional OAuth proofs, onboarding and audit",
     )
     count(
