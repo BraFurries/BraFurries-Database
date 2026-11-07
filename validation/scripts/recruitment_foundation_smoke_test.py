@@ -197,7 +197,11 @@ def run() -> None:
         "SELECT COUNT(*) FROM information_schema.TABLES "
         "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_TYPE='BASE TABLE' "
         "AND TABLE_NAME<>'flyway_schema_history'",
-        150 + discord_proof_tables, "schema count includes the optional #47 proof migration",
+        150 + discord_proof_tables + int(query(
+            "SELECT COUNT(*) FROM information_schema.TABLES "
+            "WHERE TABLE_SCHEMA=DATABASE() "
+            "AND TABLE_NAME='user_social_onboarding_challenges'"
+        )), "schema count includes the optional OAuth proof and onboarding tables",
     )
     count(
         "SELECT COUNT(DISTINCT CONSTRAINT_NAME) FROM "
