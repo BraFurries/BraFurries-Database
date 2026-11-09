@@ -185,6 +185,44 @@ def verify() -> None:
                 '2026-11-03','PAY-95001',95001)
     """, "payment requires a positive amount")
     query("""
+        INSERT INTO commerce_payments
+            (id,settlement_id,request_key,amount,paid_on,external_reference,recorded_by_user_id)
+        VALUES (95001,95001,'55555555-5555-4555-8555-555555555555',12.00,
+                '2026-11-03','PAY-95001',95001)
+    """)
+    require_equal(query("""
+        SELECT CONCAT(event_kind,':',amount)
+          FROM commerce_payments WHERE id=95001
+    """),"PAYMENT:12.00","legacy/default positive payment preserved")
+    expect_sql_failure("""
+        INSERT INTO commerce_payments
+            (settlement_id,request_key,amount,event_kind,paid_on,external_reference,
+             recorded_by_user_id,original_payment_id,reversal_reason,reversed_by_user_id,
+             reversed_at)
+        VALUES (95001,'66666666-6666-4666-8666-666666666666',12.00,'REVERSAL',
+                '2026-11-03','REVERSE-95001',95001,95001,'Duplicado',95001,NOW(6))
+    ""","reversal cannot have a positive amount")
+    query("""
+        INSERT INTO commerce_payments
+            (id,settlement_id,request_key,amount,event_kind,paid_on,external_reference,
+             recorded_by_user_id,original_payment_id,reversal_reason,reversed_by_user_id,
+             reversed_at)
+        VALUES (95002,95001,'77777777-7777-4777-8777-777777777777',-12.00,'REVERSAL',
+                '2026-11-04','REV-95001',95001,95001,'Pagamento lançado por engano',
+                95001,NOW(6))
+    """)
+    require_equal(query("""
+        SELECT SUM(amount) FROM commerce_payments WHERE settlement_id=95001
+    """),"0.00","negative reversal offsets original payout without deleting it")
+    expect_sql_failure("""
+        INSERT INTO commerce_payments
+            (settlement_id,request_key,amount,event_kind,paid_on,external_reference,
+             recorded_by_user_id,original_payment_id,reversal_reason,reversed_by_user_id,
+             reversed_at)
+        VALUES (95001,'88888888-8888-4888-8888-888888888888',-12.00,'REVERSAL',
+                '2026-11-04','REV-95001-2',95001,95001,'Duplicado',95001,NOW(6))
+    ""","payment cannot be reversed twice")
+    query("""
         INSERT INTO commerce_finance_audit
             (actor_user_id,entity_type,entity_id,action)
         VALUES (95001,'SALE',95001,'CONFIRMED')
