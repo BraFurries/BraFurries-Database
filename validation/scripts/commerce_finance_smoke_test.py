@@ -222,6 +222,21 @@ def verify() -> None:
         VALUES (95001,'88888888-8888-4888-8888-888888888888',-12.00,'REVERSAL',
                 '2026-11-04','REV-95001-2',95001,95001,'Duplicado',95001,NOW(6))
     ""","payment cannot be reversed twice")
+    require_equal(query("""
+        SELECT COUNT(*) FROM information_schema.triggers
+         WHERE trigger_schema=DATABASE() AND event_object_table='commerce_payments'
+           AND trigger_name IN ('trg_cpay_no_update','trg_cpay_no_delete')
+    """),"2","payment audit journal has both immutability triggers")
+    expect_sql_failure("""
+        UPDATE commerce_payments SET amount=99.00 WHERE id=95001
+    ""","existing payout amount cannot be rewritten")
+    expect_sql_failure("""
+        DELETE FROM commerce_payments WHERE id=95002
+    ""","negative reversal event cannot be erased")
+    require_equal(query("""
+        SELECT SUM(amount) FROM commerce_payments WHERE settlement_id=95001
+    """),"0.00","immutable payout journal still balances exactly")
+
     query("""
         INSERT INTO commerce_finance_audit
             (actor_user_id,entity_type,entity_id,action)
