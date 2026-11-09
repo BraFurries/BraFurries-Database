@@ -90,6 +90,23 @@ def verify() -> None:
         UPDATE commerce_artist_profiles SET claimed_by_user_id=99002
          WHERE user_id=99002
     ""","artist placeholder cannot self claim")
+    expect_sql_failure("""
+        UPDATE commerce_artist_claim_requests SET status='REVOKED'
+         WHERE artist_user_id=99002 AND requester_user_id=99003
+    ""","revocation cannot erase or omit audit metadata")
+    query("""
+        UPDATE commerce_artist_claim_requests
+           SET status='REVOKED',revocation_reason='Explicit owner revocation',
+               revoked_by_user_id=99001,revoked_at=CURRENT_TIMESTAMP(6)
+         WHERE artist_user_id=99002 AND requester_user_id=99003
+    """)
+    require_equal(query("""
+        SELECT COUNT(*) FROM commerce_artist_claim_requests
+         WHERE artist_user_id=99002 AND requester_user_id=99003
+           AND reviewed_by_user_id=99001 AND reviewed_at IS NOT NULL
+           AND verification_method='TELEGRAM'
+           AND revoked_by_user_id=99001 AND revoked_at IS NOT NULL
+    """),"1","revocation retains original verified approval and reviewer")
     require_equal(query("""
         SELECT COUNT(*) FROM information_schema.KEY_COLUMN_USAGE
          WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='commerce_royalty_accruals'
