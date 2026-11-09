@@ -252,6 +252,12 @@ def verify() -> None:
     require_equal(query("""
         SELECT SUM(amount) FROM commerce_order_payment_events WHERE order_id=97001
     """),"0.00","receipt reversal retains auditable payment history")
+    expect_sql_failure("""
+        UPDATE commerce_order_payment_events SET amount=999 WHERE id=97001
+    ""","receipts are immutable; correction must be a reversal")
+    expect_sql_failure("""
+        DELETE FROM commerce_order_payment_events WHERE id=97001
+    ""","receipts cannot be erased from the audit history")
     query("""
         UPDATE commerce_orders SET status='READY',ready_at=CURRENT_TIMESTAMP(6),
             updated_by_user_id=95001 WHERE id=97001
