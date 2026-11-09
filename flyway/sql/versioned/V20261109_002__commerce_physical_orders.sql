@@ -36,7 +36,8 @@ CREATE TABLE commerce_orders (
     CONSTRAINT ck_co_channel CHECK (channel IN ('EVENT','DIRECT','ONLINE','OTHER')),
     CONSTRAINT ck_co_total CHECK (total_amount >= 0),
     CONSTRAINT ck_co_dates CHECK (
-        expected_delivery_on IS NULL OR expected_delivery_on >= ordered_on),
+        (expected_delivery_on IS NULL OR expected_delivery_on >= ordered_on)
+        AND (delivered_on IS NULL OR delivered_on >= ordered_on)),
     CONSTRAINT ck_co_status CHECK (
         (status='OPEN' AND ready_at IS NULL AND delivered_on IS NULL
             AND cancelled_at IS NULL AND cancellation_reason IS NULL)
