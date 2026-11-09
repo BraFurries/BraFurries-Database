@@ -146,6 +146,52 @@ def validate_catalog() -> None:
     """)
     require_equal(query("SELECT COUNT(*) FROM commerce_catalog_audit"),
                   "1", "catalog audit persisted")
+    require_equal(query("""
+        SELECT COUNT(*) FROM information_schema.TABLES
+         WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='commerce_artwork_files'
+    """),"1","private artwork file table exists")
+    require_equal(query("""
+        SELECT COUNT(*) FROM information_schema.COLUMNS
+         WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='commerce_artwork_files'
+           AND COLUMN_NAME='community_id'
+    """),"0","artwork files cannot be selected by Community")
+    query("""
+        INSERT INTO commerce_artwork_files
+            (id,artwork_id,kind,original_name,extension,media_type,
+             storage_key,sha256,size_bytes,uploaded_by_user_id)
+        VALUES (92001,92001,'SOURCE','source.psd','psd','application/octet-stream',
+                'commerce/artworks/92001/unique.psd',
+                'dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd',
+                1000,92001)
+    """)
+    expect_sql_failure("""
+        INSERT INTO commerce_artwork_files
+            (artwork_id,kind,original_name,extension,media_type,
+             storage_key,sha256,size_bytes,uploaded_by_user_id)
+        VALUES (999999,'SOURCE','other.psd','psd','application/octet-stream',
+                'commerce/artworks/999999/bad.psd',
+                'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+                100,92001)
+    ""","unknown artwork cannot own files")
+    expect_sql_failure("""
+        INSERT INTO commerce_artwork_files
+            (artwork_id,kind,original_name,extension,media_type,
+             storage_key,sha256,size_bytes,uploaded_by_user_id)
+        VALUES (92001,'SOURCE','oversized.psd','psd','application/octet-stream',
+                'commerce/artworks/92001/huge.psd',
+                'ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
+                26214401,92001)
+    ""","file metadata cannot exceed 25 MB")
+    expect_sql_failure("""
+        UPDATE commerce_artwork_files SET status='ARCHIVED' WHERE id=92001
+    ""","archiving requires actor and timestamp")
+    query("""
+        UPDATE commerce_artwork_files SET status='ARCHIVED',
+            archived_by_user_id=92001,archived_at=CURRENT_TIMESTAMP(6)
+         WHERE id=92001
+    """)
+    require_equal(query("SELECT COUNT(*) FROM commerce_artwork_files WHERE id=92001 AND status='ARCHIVED'"),
+                  "1","archived file metadata remains auditable")
     print("PASS: commerce catalog FKs, constraints, active agreement uniqueness, cost precision")
 
 def main() -> int:

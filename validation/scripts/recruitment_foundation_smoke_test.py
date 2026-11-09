@@ -197,7 +197,7 @@ def run() -> None:
         "SELECT COUNT(*) FROM information_schema.TABLES "
         "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_TYPE='BASE TABLE' "
         "AND TABLE_NAME<>'flyway_schema_history'",
-        150 + discord_proof_tables + int(query(
+        151 + discord_proof_tables + int(query(
             "SELECT COUNT(*) FROM information_schema.TABLES "
             "WHERE TABLE_SCHEMA=DATABASE() "
             "AND TABLE_NAME='user_social_onboarding_challenges'"
