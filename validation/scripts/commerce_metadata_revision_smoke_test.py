@@ -42,8 +42,8 @@ def verify() -> None:
         VALUES (98001,'Test supplier',98001)
     """)
     query("""
-        INSERT INTO commerce_products(id,sku,name,created_by_user_id)
-        VALUES (98001,'REV-SKU-98001','Test shirt',98001)
+        INSERT INTO commerce_products(id,sku,name,suggested_price,created_by_user_id)
+        VALUES (98001,'REV-SKU-98001','Test shirt',60.00,98001)
     """)
     query("""
         INSERT INTO commerce_production_batches
