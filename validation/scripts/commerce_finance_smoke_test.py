@@ -120,10 +120,10 @@ def verify() -> None:
     """)
     query("""
         INSERT INTO commerce_artwork_contracts
-            (id,artwork_id,template_id,artist_user_id,modality_snapshot,
+            (id,artwork_id,template_id,artist_user_id,signed_artist_user_id,modality_snapshot,
              royalty_method_snapshot,royalty_percent_snapshot,effective_from,
              signed_storage_key,signed_sha256,signed_bytes,created_by_user_id)
-        VALUES (95001,95001,95001,95002,'ROYALTY','PERCENT_GROSS',10,
+        VALUES (95001,95001,95001,95002,95002,'ROYALTY','PERCENT_GROSS',10,
             '2026-11-03','commerce/contracts/95001/test.pdf',
             'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
             20,95001)

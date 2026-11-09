@@ -74,6 +74,9 @@ jobs:
       - name: Verify BraFurries finance ledger in disposable MariaDB
         run: python validation/scripts/commerce_finance_smoke_test.py
 
+      - name: Verify staff-issued artist invitations and canonical account migration on disposable MariaDB
+        run: python validation/scripts/commerce_artist_claim_smoke_test.py
+
       - name: Validate cash movements and card fees on disposable MariaDB
         run: python validation/scripts/commerce_cashflow_smoke_test.py
       - name: Verify Discord OAuth account recovery ticket storage
