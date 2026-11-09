@@ -62,6 +62,15 @@ def verify() -> None:
             (batch_id,before_json,after_json,reason,actor_user_id)
         VALUES (98001,'not JSON','{"reference":"NEXT"}','Motivo válido',98001)
     ""","batch revision requires valid JSON")
+    require_equal(query("""
+        SELECT JSON_VALID(JSON_OBJECT(
+            'productId',product_id,'supplierId',supplier_id,
+            'quantity',quantity,'unitCost',unit_cost,
+            'additionalCost',additional_cost,'totalCost',total_cost,
+            'producedOn',produced_on,'reference',reference,
+            'soldQuantity',sold_quantity))
+        FROM commerce_production_batches WHERE id=98001
+    """),"1","API production lot before/after snapshot is MariaDB-valid JSON")
     expect_sql_failure("""
         UPDATE commerce_production_batch_revisions SET reason='Changed' WHERE batch_id=98001
     ""","batch evidence is append-only")
@@ -102,6 +111,32 @@ def verify() -> None:
         SELECT updated_reference
           FROM commerce_payment_metadata_revisions WHERE payment_id=98001
     """),"BANK-2","new reference is visible in revision table")
+    require_equal(query("""
+        SELECT CASE WHEN r.id IS NULL THEN p.external_reference
+                    ELSE r.updated_reference END
+          FROM commerce_payments p
+          LEFT JOIN commerce_payment_metadata_revisions r
+            ON r.id=(SELECT MAX(latest.id)
+                       FROM commerce_payment_metadata_revisions latest
+                      WHERE latest.payment_id=p.id)
+         WHERE p.id=98001
+    """),"BANK-2","API payment listing projects latest corrected reference")
+    require_equal(query("""
+        SELECT p.id FROM commerce_payments p
+          LEFT JOIN commerce_payment_metadata_revisions r
+            ON r.id=(SELECT MAX(latest.id)
+                       FROM commerce_payment_metadata_revisions latest
+                      WHERE latest.payment_id=p.id)
+         WHERE p.settlement_id=98001 AND p.id<>999999
+           AND (CASE WHEN r.id IS NULL THEN p.external_reference
+                     ELSE r.updated_reference END)='BANK-2'
+         LIMIT 1 FOR UPDATE
+    """),"98001","API payment uniqueness check supports locking join")
+    require_equal(query("""
+        SELECT updated_reference
+          FROM commerce_payment_metadata_revisions
+         WHERE payment_id=98001 ORDER BY id DESC LIMIT 1 FOR UPDATE
+    """),"BANK-2","API reads latest revision with a locking read")
 
     query("""
         INSERT INTO commerce_cash_movements
@@ -133,6 +168,16 @@ def verify() -> None:
     require_equal(query("""
         SELECT COUNT(*) FROM commerce_cash_metadata_revisions WHERE movement_id=98001
     """),"1","cash correction is recorded exactly once")
+    require_equal(query("""
+        SELECT CASE WHEN r.id IS NULL THEN m.description
+                    ELSE r.updated_description END
+          FROM commerce_cash_movements m
+          LEFT JOIN commerce_cash_metadata_revisions r
+            ON r.id=(SELECT MAX(latest.id)
+                       FROM commerce_cash_metadata_revisions latest
+                      WHERE latest.movement_id=m.id)
+         WHERE m.id=98001
+    """),"Impressão de cartazes","API cash listing projects latest corrected description")
     print("PASS: operational corrections append-only and original financial rows intact")
 
 def main() -> int:
