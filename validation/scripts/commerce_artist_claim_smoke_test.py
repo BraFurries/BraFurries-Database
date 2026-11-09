@@ -33,6 +33,13 @@ def verify() -> None:
             (user_id,artist_name,telegram_handle,contact_email,created_by_user_id)
         VALUES (99002,'External Art','@artist','not_verified@example.invalid',99001)
     """)
+    # The baseline is sanitized and local smoke fixtures may have their own
+    # users table shape. Read only table metadata for diagnostic parity.
+    print("DEBUG users column names:", query("""
+        SELECT GROUP_CONCAT(COLUMN_NAME ORDER BY ORDINAL_POSITION SEPARATOR ',')
+          FROM information_schema.COLUMNS
+         WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='users'
+    """))
     require_equal(query("""
         SELECT COUNT(*) FROM information_schema.COLUMNS
          WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='users'
