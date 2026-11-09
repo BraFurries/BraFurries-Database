@@ -26,7 +26,7 @@ A migration converte o registro de repasses em ledger com `event_kind`
 `original_payment_id` (FK composta de origem no mesmo fechamento),
 `reversal_reason`, `reversed_by_user_id`, `reversed_at`. Mantém
 todas as linhas e valores anteriores; somente compensações negativas são novas.
-Uma UNIQUE impede estornar o mesmo pagamento duas vezes. A operação **não**
+Uma UNIQUE impede estornar o mesmo pagamento duas vezes. Dois triggers proíbem UPDATE/DELETE de lançamentos originais ou compensatórios. A operação **não**
 faz PIX/transferência/reembolso; trata somente do registro contábil interno.
 
 ## 1. Preflight SQL: SOMENTE LEITURA
@@ -59,6 +59,9 @@ SELECT COUNT(*) AS rows_invalid_by_legacy_rules
   FROM commerce_payments
  WHERE amount<=0 OR request_key IS NULL
     OR settlement_id IS NULL OR paid_on IS NULL;
+SELECT trigger_name,event_manipulation
+  FROM information_schema.triggers
+ WHERE trigger_schema=DATABASE() AND event_object_table='commerce_payments';
 SELECT COUNT(*) AS flyway_history_tables
   FROM information_schema.tables
  WHERE table_schema=DATABASE() AND table_name='flyway_schema_history';
@@ -68,7 +71,7 @@ SELECT COUNT(*) AS flyway_history_tables
 `event_kind` ou `original_payment_id` já existir, houver algum valor
 de pagamento não positivo, ou o histórico Flyway indicar outro procedimento
 sem reconciliação. Esperado antes do SQL: constraint `ck_cpay_amount`
-(`amount > 0`), sem `ck_cpay_signed_amount` e sem índice de origem.
+(`amount > 0`), sem `ck_cpay_signed_amount`, sem índice de origem e sem os triggers `trg_cpay_no_update` e `trg_cpay_no_delete`.
 
 Registrar snapshot dos totais (contagem e soma), distribuição por fechamento,
 versão MariaDB, SHA do HEAD aprovado, SHA-256 do arquivo e backup restaurável.
@@ -82,7 +85,7 @@ de FKs. Nenhuma credencial ou dado de clientes deve ser colado em PR/chat.
 3. Executar **uma vez** o arquivo
    `flyway/sql/versioned/V20261109_004__commerce_payout_reversal_ledger.sql`
    com o schema selecionado. Ele contém **três ALTER TABLE** (índices,
-   foreign keys e substituição da CHECK antiga).
+   foreign keys e substituição da CHECK antiga) e **dois CREATE TRIGGER** que tornam o ledger append-only.
 4. Conferir cada resultado e parar diante da primeira falha.
 
 MariaDB faz **commit implícito** em DDL. Se o ALTER #2 falhar após o #1,
@@ -107,6 +110,11 @@ SELECT constraint_name,constraint_type
    AND constraint_name IN
        ('fk_cpay_reversal_origin','fk_cpay_reverser',
         'ck_cpay_signed_amount','ck_cpay_amount');
+
+SELECT trigger_name,event_manipulation,action_timing
+  FROM information_schema.triggers
+ WHERE trigger_schema=DATABASE() AND event_object_table='commerce_payments'
+ ORDER BY trigger_name;
 
 SELECT index_name,group_concat(column_name ORDER BY seq_in_index) AS index_columns
   FROM information_schema.statistics
@@ -140,7 +148,7 @@ SELECT COUNT(*) AS invalid_reversal_links
 
 Esperado imediatamente após migração **sem estorno lançado**: cinco colunas
 novas, `ck_cpay_signed_amount` presente, `ck_cpay_amount` ausente,
-duas FKs e três índices presentes, contagem e soma de registros iguais ao
+duas FKs, três índices e dois triggers (BEFORE UPDATE e BEFORE DELETE) presentes, contagem e soma de registros iguais ao
 preflight, todas as linhas existentes marcadas `PAYMENT`,
 `invalid_payment_rows=0`, `invalid_reversal_links=0`. O `community_id`
 não aparece. Se não houver pagamentos ainda, a contagem continuará zero;
