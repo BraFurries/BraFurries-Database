@@ -262,6 +262,10 @@ def verify() -> None:
         UPDATE commerce_orders SET status='READY',ready_at=CURRENT_TIMESTAMP(6),
             updated_by_user_id=95001 WHERE id=97001
     """)
+    expect_sql_failure("""
+        UPDATE commerce_orders SET status='DELIVERED',delivered_on='2026-11-02',
+            updated_by_user_id=95001 WHERE id=97001
+    ""","delivery date cannot precede original order")
     query("""
         UPDATE commerce_orders SET status='DELIVERED',delivered_on='2026-11-15',
             updated_by_user_id=95001 WHERE id=97001
