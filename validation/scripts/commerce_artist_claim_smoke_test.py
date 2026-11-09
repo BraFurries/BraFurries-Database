@@ -86,6 +86,21 @@ def verify() -> None:
         SELECT COUNT(*) FROM commerce_artist_profiles
          WHERE user_id=99002 AND claimed_by_user_id=99003
     """),"1","approved claim points to website user while artist data stays on original users.id")
+    query("""
+        INSERT INTO commerce_artworks
+            (id,title,artist_user_id,creation_cost,created_by_user_id)
+        VALUES (99002,'Artista externa',99002,100.00,99001)
+    """)
+    require_equal(query("""
+        SELECT COUNT(*) FROM commerce_artworks art
+          LEFT JOIN commerce_artist_profiles p ON p.user_id=art.artist_user_id
+         WHERE art.artist_user_id=99003 OR p.claimed_by_user_id=99003
+    """),"1","approved applicant sees historical artist artwork")
+    require_equal(query("""
+        SELECT COUNT(*) FROM commerce_artworks art
+          LEFT JOIN commerce_artist_profiles p ON p.user_id=art.artist_user_id
+         WHERE art.artist_user_id=99004 OR p.claimed_by_user_id=99004
+    """),"0","unapproved applicant cannot see another artist artwork")
     expect_sql_failure("""
         UPDATE commerce_artist_profiles SET claimed_by_user_id=99002
          WHERE user_id=99002
@@ -107,6 +122,17 @@ def verify() -> None:
            AND verification_method='TELEGRAM'
            AND revoked_by_user_id=99001 AND revoked_at IS NOT NULL
     """),"1","revocation retains original verified approval and reviewer")
+    query("""
+        UPDATE commerce_artist_profiles
+           SET claimed_by_user_id=NULL,claimed_at=NULL,
+               claim_approved_by_user_id=NULL
+         WHERE user_id=99002 AND claimed_by_user_id=99003
+    """)
+    require_equal(query("""
+        SELECT COUNT(*) FROM commerce_artworks art
+          LEFT JOIN commerce_artist_profiles p ON p.user_id=art.artist_user_id
+         WHERE art.artist_user_id=99003 OR p.claimed_by_user_id=99003
+    """),"0","revocation immediately removes historical artist artwork access")
     require_equal(query("""
         SELECT COUNT(*) FROM information_schema.KEY_COLUMN_USAGE
          WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='commerce_royalty_accruals'
