@@ -101,6 +101,43 @@ def verify() -> None:
          WHERE id=99002 AND artist_user_id=99003 AND signed_artist_user_id=99002
     """),"1","contract ownership moved while original signed party remains preserved")
 
+    # The production executor transfers monthly lock rows by INSERT ... SELECT
+    # against the same table. Test overlapping and distinct periods in MariaDB.
+    query("""
+        INSERT INTO commerce_period_locks
+            (artist_user_id,period_year,period_month)
+        VALUES (99002,2026,11),(99002,2026,12),(99003,2026,12)
+    """)
+    query("""
+        INSERT IGNORE INTO commerce_period_locks
+            (artist_user_id,period_year,period_month)
+        SELECT 99003,period_year,period_month
+          FROM commerce_period_locks WHERE artist_user_id=99002
+    """)
+    query("""
+        DELETE FROM commerce_period_locks WHERE artist_user_id=99002
+    """)
+    require_equal(query("""
+        SELECT COUNT(*) FROM commerce_period_locks
+         WHERE artist_user_id=99003 AND period_year=2026
+           AND period_month IN (11,12)
+    """),"2","monthly mutex migration preserves both periods without duplicates")
+    require_equal(query("""
+        SELECT COUNT(*) FROM commerce_period_locks WHERE artist_user_id=99002
+    """),"0","original commercial identity no longer owns period mutex rows")
+
+    # MariaDB must reject overwriting a canonical settlement in the same
+    # period; the API performs this conflict preflight before any writes.
+    query("""
+        INSERT INTO commerce_settlements
+            (artist_user_id,period_year,period_month,total_amount,created_by_user_id)
+        VALUES (99002,2026,11,50.00,99001),(99003,2026,11,30.00,99001)
+    """)
+    expect_sql_failure("""
+        UPDATE commerce_settlements SET artist_user_id=99003
+         WHERE artist_user_id=99002 AND period_year=2026 AND period_month=11
+    ""","conflicting period settlements cannot be merged blindly")
+
     query("""
         UPDATE commerce_artist_invitations
            SET status='USED',consumed_by_user_id=99003,consumed_at=NOW(6)
