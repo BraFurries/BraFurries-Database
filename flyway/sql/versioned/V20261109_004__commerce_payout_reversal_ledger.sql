@@ -9,9 +9,12 @@ ALTER TABLE commerce_payments
     ADD COLUMN reversed_by_user_id INT(11) NULL AFTER reversal_reason,
     ADD COLUMN reversed_at DATETIME(6) NULL AFTER reversed_by_user_id,
     ADD UNIQUE KEY uq_cpay_reversal_origin (original_payment_id),
+    ADD UNIQUE KEY uq_cpay_id_settlement (id,settlement_id),
     ADD KEY idx_cpay_payment_event (settlement_id,event_kind),
-    ADD CONSTRAINT fk_cpay_reversal_origin FOREIGN KEY (original_payment_id)
-        REFERENCES commerce_payments(id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+    ADD CONSTRAINT fk_cpay_reversal_origin
+        FOREIGN KEY (original_payment_id,settlement_id)
+        REFERENCES commerce_payments(id,settlement_id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
     ADD CONSTRAINT fk_cpay_reverser FOREIGN KEY (reversed_by_user_id)
         REFERENCES users(id) ON DELETE RESTRICT ON UPDATE RESTRICT;
 
