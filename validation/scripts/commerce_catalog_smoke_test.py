@@ -51,33 +51,33 @@ def validate_catalog() -> None:
     """, "negative creation cost is rejected")
     query("""
        INSERT INTO commerce_artwork_contracts
-          (id,artwork_id,template_id,artist_user_id,modality_snapshot,
+          (id,artwork_id,template_id,artist_user_id,signed_artist_user_id,modality_snapshot,
            royalty_method_snapshot,royalty_percent_snapshot,effective_from,
            signed_storage_key,signed_sha256,signed_bytes,created_by_user_id)
        VALUES
-          (92001,92001,92001,92002,'ROYALTY','PERCENT_GROSS',12.5000,
+          (92001,92001,92001,92002,92002,'ROYALTY','PERCENT_GROSS',12.5000,
            '2026-11-03','commerce/contracts/document-1.pdf',
            'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
            1000,92001)
     """)
     expect_sql_failure("""
        INSERT INTO commerce_artwork_contracts
-          (artwork_id,template_id,artist_user_id,modality_snapshot,
+          (artwork_id,template_id,artist_user_id,signed_artist_user_id,modality_snapshot,
            royalty_method_snapshot,royalty_percent_snapshot,effective_from,
            signed_storage_key,signed_sha256,signed_bytes,created_by_user_id)
        VALUES
-          (92001,92001,92003,'ROYALTY','PERCENT_GROSS',12.5000,
+          (92001,92001,92003,999999,'ROYALTY','PERCENT_GROSS',12.5000,
            '2026-11-03','commerce/contracts/other-artist.pdf',
            'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
            1000,92001)
-    """, "agreement artist must equal artwork artist")
+    """, "unknown original signed artist must be rejected")
     expect_sql_failure("""
        INSERT INTO commerce_artwork_contracts
-          (artwork_id,template_id,artist_user_id,modality_snapshot,
+          (artwork_id,template_id,artist_user_id,signed_artist_user_id,modality_snapshot,
            royalty_method_snapshot,royalty_percent_snapshot,effective_from,
            signed_storage_key,signed_sha256,signed_bytes,created_by_user_id)
        VALUES
-          (92001,92001,92002,'ROYALTY','PERCENT_GROSS',12.5000,
+          (92001,92001,92002,92002,'ROYALTY','PERCENT_GROSS',12.5000,
            '2026-11-03','commerce/contracts/document-2.pdf',
            'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc',
            1000,92001)
@@ -88,11 +88,11 @@ def validate_catalog() -> None:
     """)
     query("""
        INSERT INTO commerce_artwork_contracts
-          (artwork_id,template_id,artist_user_id,modality_snapshot,
+          (artwork_id,template_id,artist_user_id,signed_artist_user_id,modality_snapshot,
            royalty_method_snapshot,royalty_percent_snapshot,effective_from,
            signed_storage_key,signed_sha256,signed_bytes,created_by_user_id)
        VALUES
-          (92001,92001,92002,'ROYALTY','PERCENT_GROSS',12.5000,
+          (92001,92001,92002,92002,'ROYALTY','PERCENT_GROSS',12.5000,
            '2026-11-03','commerce/contracts/document-2.pdf',
            'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc',
            1000,92001)
