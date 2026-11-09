@@ -109,3 +109,14 @@ CREATE TABLE commerce_order_payment_events (
                            'BANK_TRANSFER','BANK_SLIP','OTHER')
     )
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Event rows are append-only. Corrections are new REVERSAL records.
+CREATE TRIGGER trg_cope_no_update
+BEFORE UPDATE ON commerce_order_payment_events
+FOR EACH ROW SIGNAL SQLSTATE '45000'
+SET MESSAGE_TEXT='Registro de recebimento é imutável; use estorno';
+
+CREATE TRIGGER trg_cope_no_delete
+BEFORE DELETE ON commerce_order_payment_events
+FOR EACH ROW SIGNAL SQLSTATE '45000'
+SET MESSAGE_TEXT='Registro de recebimento não pode ser excluído';
