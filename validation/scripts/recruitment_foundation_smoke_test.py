@@ -212,7 +212,7 @@ def run() -> None:
         )) + int(query(
             "SELECT COUNT(*) FROM information_schema.TABLES "
             "WHERE TABLE_SCHEMA=DATABASE() "
-            "AND TABLE_NAME IN ('commerce_artist_profiles','commerce_artist_claim_requests')"
+            "AND TABLE_NAME IN ('commerce_artist_profiles','commerce_artist_invitations','commerce_artist_consolidations')"
         )), "schema count includes optional OAuth proofs, onboarding, audit and artists",
     )
     count(
