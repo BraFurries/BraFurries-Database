@@ -213,7 +213,12 @@ def run() -> None:
             "SELECT COUNT(*) FROM information_schema.TABLES "
             "WHERE TABLE_SCHEMA=DATABASE() "
             "AND TABLE_NAME IN ('commerce_artist_profiles','commerce_artist_invitations','commerce_artist_consolidations')"
-        )), "schema count includes optional OAuth proofs, onboarding, audit and artists",
+        )) + int(query(
+            "SELECT COUNT(*) FROM information_schema.TABLES "
+            "WHERE TABLE_SCHEMA=DATABASE() "
+            "AND TABLE_NAME IN ('commerce_production_batch_revisions',"
+            "'commerce_payment_metadata_revisions','commerce_cash_metadata_revisions')"
+        )), "schema count includes OAuth, onboarding, artists and metadata revisions",
     )
     count(
         "SELECT COUNT(DISTINCT CONSTRAINT_NAME) FROM "
