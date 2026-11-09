@@ -61,6 +61,9 @@ CREATE TABLE `commerce_artist_claim_requests` (
     `review_notes` VARCHAR(1000) NULL,
     `reviewed_by_user_id` INT(11) NULL,
     `reviewed_at` DATETIME(6) NULL,
+    `revoked_by_user_id` INT(11) NULL,
+    `revoked_at` DATETIME(6) NULL,
+    `revocation_reason` VARCHAR(1000) NULL,
     `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     `updated_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)
         ON UPDATE CURRENT_TIMESTAMP(6),
@@ -75,12 +78,15 @@ CREATE TABLE `commerce_artist_claim_requests` (
     KEY `idx_cacr_requester_created` (`requester_user_id`,`created_at`),
     KEY `idx_cacr_status_created` (`status`,`created_at`),
     KEY `fk_cacr_reviewer` (`reviewed_by_user_id`),
+    KEY `fk_cacr_revoker` (`revoked_by_user_id`),
     CONSTRAINT `fk_cacr_artist` FOREIGN KEY (`artist_user_id`)
         REFERENCES `commerce_artist_profiles` (`user_id`)
         ON UPDATE RESTRICT ON DELETE RESTRICT,
     CONSTRAINT `fk_cacr_requester` FOREIGN KEY (`requester_user_id`)
         REFERENCES `users` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT,
     CONSTRAINT `fk_cacr_reviewer` FOREIGN KEY (`reviewed_by_user_id`)
+        REFERENCES `users` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT,
+    CONSTRAINT `fk_cacr_revoker` FOREIGN KEY (`revoked_by_user_id`)
         REFERENCES `users` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT,
     CONSTRAINT `ck_cacr_people` CHECK (`artist_user_id` <> `requester_user_id`),
     CONSTRAINT `ck_cacr_status` CHECK (
@@ -95,5 +101,11 @@ CREATE TABLE `commerce_artist_claim_requests` (
     CONSTRAINT `ck_cacr_method` CHECK (
         `verification_method` IS NULL OR `verification_method`
         IN ('TELEGRAM','EMAIL','IN_PERSON','OTHER')
+    ),
+    CONSTRAINT `ck_cacr_revocation` CHECK (
+        (`status`='REVOKED' AND `revoked_by_user_id` IS NOT NULL
+            AND `revoked_at` IS NOT NULL AND `revocation_reason` IS NOT NULL)
+        OR (`status`<>'REVOKED' AND `revoked_by_user_id` IS NULL
+            AND `revoked_at` IS NULL AND `revocation_reason` IS NULL)
     )
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
