@@ -202,6 +202,66 @@ def verify() -> None:
         query("SELECT quantity-sold_quantity FROM commerce_production_batches WHERE id=95001"),
         "10", "cancelled sale restores batch stock under the same transaction"
     )
+    # Preorders never create stock movements, sales or accruals.
+    query("""
+        INSERT INTO commerce_orders
+            (id,request_key,request_sha256,buyer_label,ordered_on,
+             expected_delivery_on,total_amount,created_by_user_id)
+        VALUES (97001,'11111111-1111-4111-8111-111111111111',
+                'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+                'Pré-encomenda','2026-11-03','2026-11-15',120.00,95001)
+    """)
+    query("""
+        INSERT INTO commerce_order_items
+            (order_id,product_id,item_label,size_label,quantity,
+             unit_price_snapshot,line_amount)
+        VALUES (97001,95001,'Camiseta','GG',2,60.00,120.00)
+    """)
+    expect_sql_failure("""
+        INSERT INTO commerce_order_items
+            (order_id,item_label,quantity,unit_price_snapshot,line_amount)
+        VALUES (97001,'Wrong amount',2,60.00,100.00)
+    ""","order line total cannot contradict quantity and unit price")
+    expect_sql_failure("""
+        UPDATE commerce_orders SET status='DELIVERED' WHERE id=97001
+    ""","order cannot claim delivery without readiness and date")
+    query("""
+        INSERT INTO commerce_order_payment_events
+            (id,order_id,request_key,request_sha256,event_kind,amount,
+             received_on,payment_method,recorded_by_user_id)
+        VALUES (97001,97001,'22222222-2222-4222-8222-222222222222',
+                'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+                'RECEIPT',50.00,'2026-11-03','PIX',95001)
+    """)
+    expect_sql_failure("""
+        INSERT INTO commerce_order_payment_events
+            (order_id,request_key,request_sha256,event_kind,amount,
+             received_on,payment_method,recorded_by_user_id)
+        VALUES (97001,'33333333-3333-4333-8333-333333333333',
+                'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc',
+                'RECEIPT',-50.00,'2026-11-03','PIX',95001)
+    ""","negative amount cannot be a receipt")
+    query("""
+        INSERT INTO commerce_order_payment_events
+            (order_id,request_key,request_sha256,event_kind,original_event_id,amount,
+             received_on,payment_method,recorded_by_user_id)
+        VALUES (97001,'44444444-4444-4444-8444-444444444444',
+                'dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd',
+                'REVERSAL',97001,-50.00,'2026-11-03','PIX',95001)
+    """)
+    require_equal(query("""
+        SELECT SUM(amount) FROM commerce_order_payment_events WHERE order_id=97001
+    """),"0.00","receipt reversal retains auditable payment history")
+    query("""
+        UPDATE commerce_orders SET status='READY',ready_at=CURRENT_TIMESTAMP(6),
+            updated_by_user_id=95001 WHERE id=97001
+    """)
+    query("""
+        UPDATE commerce_orders SET status='DELIVERED',delivered_on='2026-11-15',
+            updated_by_user_id=95001 WHERE id=97001
+    """)
+    require_equal(query("SELECT COUNT(*) FROM commerce_sales WHERE id=97001"),
+                  "0","delivery cannot silently create a financial sale")
     print("PASS: finance ledger constraints, idempotent keys, royalty reversal, monthly uniqueness")
 
 def main() -> int:
