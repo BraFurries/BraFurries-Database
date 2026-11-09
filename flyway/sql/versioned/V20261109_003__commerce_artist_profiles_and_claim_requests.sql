@@ -43,11 +43,14 @@ CREATE TABLE `commerce_artist_invitations` (
     `consumed_at` DATETIME(6) NULL,
     `revoked_by_user_id` INT(11) NULL,
     `revoked_at` DATETIME(6) NULL,
-    `active_artist_user_id` INT(11) AS
+    -- Not a users.id foreign key; omit _user_id naming so the live
+    -- consolidation reference scanner does not mistake this generated key
+    -- for an independent ownership relationship.
+    `active_artist_key` INT(11) AS
         (CASE WHEN `status`='ACTIVE' THEN `artist_user_id` ELSE NULL END) PERSISTENT,
     PRIMARY KEY (`id`),
     UNIQUE KEY `uq_cai_token` (`token_hash`),
-    UNIQUE KEY `uq_cai_active_artist` (`active_artist_user_id`),
+    UNIQUE KEY `uq_cai_active_artist` (`active_artist_key`),
     KEY `idx_cai_artist` (`artist_user_id`,`issued_at`),
     KEY `idx_cai_expire` (`status`,`expires_at`),
     KEY `fk_cai_issuer` (`issued_by_user_id`),
