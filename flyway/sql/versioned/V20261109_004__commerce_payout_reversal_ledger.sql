@@ -10,7 +10,11 @@ ALTER TABLE commerce_payments
     ADD COLUMN reversed_at DATETIME(6) NULL AFTER reversed_by_user_id,
     ADD UNIQUE KEY uq_cpay_reversal_origin (original_payment_id),
     ADD UNIQUE KEY uq_cpay_id_settlement (id,settlement_id),
-    ADD KEY idx_cpay_payment_event (settlement_id,event_kind),
+    ADD KEY idx_cpay_payment_event (settlement_id,event_kind);
+
+-- MariaDB 10.6 must see the referenced composite key before resolving a
+-- self-referential FK. Adding the index and FK in one ALTER can fail errno 150.
+ALTER TABLE commerce_payments
     ADD CONSTRAINT fk_cpay_reversal_origin
         FOREIGN KEY (original_payment_id,settlement_id)
         REFERENCES commerce_payments(id,settlement_id)
