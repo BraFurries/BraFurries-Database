@@ -37,5 +37,19 @@ ALTER TABLE commerce_payments
          AND reversed_by_user_id IS NOT NULL AND reversed_at IS NOT NULL)
     );
 
+-- Defense-in-depth: financial payment journal is append-only, including
+-- historical positive entries and negative compensating reversals.
+-- Matches immutable order receipt events; corrected entries must never
+-- overwrite or physically delete existing payment evidence.
+CREATE TRIGGER trg_cpay_no_update
+BEFORE UPDATE ON commerce_payments
+FOR EACH ROW SIGNAL SQLSTATE '45000'
+SET MESSAGE_TEXT='Registro de repasse é imutável; use estorno';
+
+CREATE TRIGGER trg_cpay_no_delete
+BEFORE DELETE ON commerce_payments
+FOR EACH ROW SIGNAL SQLSTATE '45000'
+SET MESSAGE_TEXT='Registro de repasse não pode ser excluído';
+
 -- Audit is performed by the API in commerce_finance_audit; the original payment
 -- id, amount, external reference, date, recorder and bytes are never overwritten.
