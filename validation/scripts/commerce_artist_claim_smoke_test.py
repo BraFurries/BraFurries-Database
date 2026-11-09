@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Disposable MariaDB validation of private commerce artist ownership claims."""
+"""Disposable MariaDB smoke of commercial artist invitations and canonical ownership."""
 from __future__ import annotations
 
 import sys
@@ -10,139 +10,117 @@ from smoke_test import (
 
 
 def verify() -> None:
-    for table in ("commerce_artist_profiles", "commerce_artist_claim_requests"):
+    tables=("commerce_artist_profiles","commerce_artist_invitations","commerce_artist_consolidations")
+    for table in tables:
         require_equal(query(
             "SELECT COUNT(*) FROM information_schema.TABLES "
             f"WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='{table}'"),
-            "1", f"{table} exists")
+            "1",f"{table} exists")
+        require_equal(query(f"SELECT COUNT(*) FROM {table}"),"0",f"{table} initially empty")
         require_equal(query(
             "SELECT COUNT(*) FROM information_schema.COLUMNS "
             f"WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='{table}' "
             "AND COLUMN_NAME='community_id'"),
-            "0", f"{table} is BraFurries-only")
-        require_equal(query(f"SELECT COUNT(*) FROM {table}"),
-            "0", f"{table} starts empty")
+            "0",f"{table} is exclusively BraFurries")
 
     query("""
         INSERT INTO users (id,display_name) VALUES
-        (99001,'Owner'),(99002,'External artist'),(99003,'Applicant'),
-        (99004,'Second applicant')
+            (99001,'Commercial administrator'),(99002,'External artist'),
+            (99003,'Canonical account'),(99004,'Unknown account')
     """)
     query("""
         INSERT INTO commerce_artist_profiles
             (user_id,artist_name,telegram_handle,contact_email,created_by_user_id)
-        VALUES (99002,'External Art','@artist','not_verified@example.invalid',99001)
+        VALUES (99002,'External Art','@artist','contact@example.invalid',99001)
     """)
-    # This smoke deliberately runs on validation/fixtures/flyway-smoke, whose
-    # minimal users prerequisite contains ONLY id and display_name. The real
-    # production baseline (B20261020_001) has nullable email/password_hash;
-    # API tests and the rollout preflight cover those login-related invariants.
+    query("""
+        INSERT INTO commerce_artist_invitations
+            (id,artist_user_id,token_hash,code_hash,expires_at,issued_by_user_id)
+        VALUES (999,99002,REPEAT('a',64),REPEAT('b',64),
+                DATE_ADD(NOW(6), INTERVAL 2 DAY),99001)
+    """)
+    expect_sql_failure("""
+        INSERT INTO commerce_artist_invitations
+            (artist_user_id,token_hash,code_hash,expires_at,issued_by_user_id)
+        VALUES (99002,REPEAT('c',64),REPEAT('d',64),
+                DATE_ADD(NOW(6), INTERVAL 2 DAY),99001)
+    ""","at most one active invite for an artist")
+    expect_sql_failure("""
+        UPDATE commerce_artist_invitations SET status='USED' WHERE id=999
+    ""","USED requires authenticated account and usage timestamp")
+    expect_sql_failure("""
+        UPDATE commerce_artist_invitations SET failed_attempts=6 WHERE id=999
+    ""","failed confirmations capped at five")
+    expect_sql_failure("""
+        UPDATE commerce_artist_invitations SET status='REVOKED' WHERE id=999
+    ""","revocation requires owner audit metadata")
+
+    # Existing signed contracts must retain the original signatory, while
+    # operational artist ownership may safely become the canonical user.
     require_equal(query("""
         SELECT COUNT(*) FROM information_schema.COLUMNS
-         WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='users'
-           AND COLUMN_NAME IN ('email','password_hash')
-    """),"0","the disposable prerequisite intentionally has no login columns")
+         WHERE TABLE_SCHEMA=DATABASE()
+           AND TABLE_NAME='commerce_artwork_contracts'
+           AND COLUMN_NAME='signed_artist_user_id'
+           AND IS_NULLABLE='NO'
+    """),"1","signed_artist_user_id is non-nullable historical evidence")
     require_equal(query("""
-        SELECT COUNT(*) FROM users WHERE id=99002
-    """),"1","external artist is an inert users record in this disposable fixture")
-    expect_sql_failure("""
-        INSERT INTO commerce_artist_profiles (user_id,artist_name,created_by_user_id)
-        VALUES (99003,'',99001)
-    ""","empty artist names prohibited")
-    expect_sql_failure("""
-        INSERT INTO commerce_artist_profiles (user_id,artist_name,created_by_user_id)
-        VALUES (99999,'Phantom',99001)
-    ""","artist profile requires real users.id")
+        SELECT COUNT(*) FROM information_schema.REFERENTIAL_CONSTRAINTS
+         WHERE CONSTRAINT_SCHEMA=DATABASE()
+           AND TABLE_NAME='commerce_artwork_contracts'
+           AND CONSTRAINT_NAME='fk_cac_artwork_only'
+    """),"1","contract FK no longer blocks canonical artist transfer")
 
     query("""
-        INSERT INTO commerce_artist_claim_requests
-            (artist_user_id,requester_user_id,requester_message)
-        VALUES (99002,99003,'Please verify using existing artist contact')
+        INSERT INTO commerce_contract_templates
+            (id,name,modality,royalty_method,created_by_user_id)
+        VALUES (99002,'Smoke one-time contract','ONE_TIME_FEE','NONE',99001)
     """)
-    expect_sql_failure("""
-        INSERT INTO commerce_artist_claim_requests
-            (artist_user_id,requester_user_id)
-        VALUES (99002,99004)
-    ""","only one active request per commercial artist")
-    expect_sql_failure("""
-        INSERT INTO commerce_artist_claim_requests
-            (artist_user_id,requester_user_id,status)
-        VALUES (99002,99004,'APPROVED')
-    ""","claim approval requires a named reviewer")
-    expect_sql_failure("""
-        UPDATE commerce_artist_profiles
-           SET claimed_by_user_id=99003 WHERE user_id=99002
-    ""","cannot activate ownership without approval metadata")
-
-    query("""
-        UPDATE commerce_artist_claim_requests
-           SET status='APPROVED',verification_method='TELEGRAM',
-               reviewed_by_user_id=99001,reviewed_at=CURRENT_TIMESTAMP(6)
-         WHERE artist_user_id=99002 AND requester_user_id=99003
-    """)
-    query("""
-        UPDATE commerce_artist_profiles
-           SET claimed_by_user_id=99003,claimed_at=CURRENT_TIMESTAMP(6),
-               claim_approved_by_user_id=99001 WHERE user_id=99002
-    """)
-    require_equal(query("""
-        SELECT COUNT(*) FROM commerce_artist_profiles
-         WHERE user_id=99002 AND claimed_by_user_id=99003
-    """),"1","approved claim points to website user while artist data stays on original users.id")
     query("""
         INSERT INTO commerce_artworks
             (id,title,artist_user_id,creation_cost,created_by_user_id)
         VALUES (99002,'Artista externa',99002,100.00,99001)
     """)
-    require_equal(query("""
-        SELECT COUNT(*) FROM commerce_artworks art
-          LEFT JOIN commerce_artist_profiles p ON p.user_id=art.artist_user_id
-         WHERE art.artist_user_id=99003 OR p.claimed_by_user_id=99003
-    """),"1","approved applicant sees historical artist artwork")
-    require_equal(query("""
-        SELECT COUNT(*) FROM commerce_artworks art
-          LEFT JOIN commerce_artist_profiles p ON p.user_id=art.artist_user_id
-         WHERE art.artist_user_id=99004 OR p.claimed_by_user_id=99004
-    """),"0","unapproved applicant cannot see another artist artwork")
-    expect_sql_failure("""
-        UPDATE commerce_artist_profiles SET claimed_by_user_id=99002
-         WHERE user_id=99002
-    ""","artist placeholder cannot self claim")
-    expect_sql_failure("""
-        UPDATE commerce_artist_claim_requests SET status='REVOKED'
-         WHERE artist_user_id=99002 AND requester_user_id=99003
-    ""","revocation cannot erase or omit audit metadata")
     query("""
-        UPDATE commerce_artist_claim_requests
-           SET status='REVOKED',revocation_reason='Explicit owner revocation',
-               revoked_by_user_id=99001,revoked_at=CURRENT_TIMESTAMP(6)
-         WHERE artist_user_id=99002 AND requester_user_id=99003
+        INSERT INTO commerce_artwork_contracts
+            (id,artwork_id,template_id,artist_user_id,signed_artist_user_id,
+             modality_snapshot,royalty_method_snapshot,effective_from,
+             signed_storage_key,signed_sha256,signed_bytes,created_by_user_id)
+        VALUES (99002,99002,99002,99002,99002,
+                'ONE_TIME_FEE','NONE','2026-11-09',
+                'private/test/artist-contract',REPEAT('f',64),100,99001)
+    """)
+    query("""
+        UPDATE commerce_artworks SET artist_user_id=99003 WHERE id=99002
+    """)
+    query("""
+        UPDATE commerce_artwork_contracts SET artist_user_id=99003 WHERE id=99002
     """)
     require_equal(query("""
-        SELECT COUNT(*) FROM commerce_artist_claim_requests
-         WHERE artist_user_id=99002 AND requester_user_id=99003
-           AND reviewed_by_user_id=99001 AND reviewed_at IS NOT NULL
-           AND verification_method='TELEGRAM'
-           AND revoked_by_user_id=99001 AND revoked_at IS NOT NULL
-    """),"1","revocation retains original verified approval and reviewer")
-    query("""
-        UPDATE commerce_artist_profiles
-           SET claimed_by_user_id=NULL,claimed_at=NULL,
-               claim_approved_by_user_id=NULL
-         WHERE user_id=99002 AND claimed_by_user_id=99003
-    """)
-    require_equal(query("""
-        SELECT COUNT(*) FROM commerce_artworks art
-          LEFT JOIN commerce_artist_profiles p ON p.user_id=art.artist_user_id
-         WHERE art.artist_user_id=99003 OR p.claimed_by_user_id=99003
-    """),"0","revocation immediately removes historical artist artwork access")
-    require_equal(query("""
-        SELECT COUNT(*) FROM information_schema.KEY_COLUMN_USAGE
-         WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='commerce_royalty_accruals'
-           AND COLUMN_NAME='artist_user_id' AND REFERENCED_TABLE_NAME='users'
-    """),"1","legacy royalty FK unchanged")
+        SELECT COUNT(*) FROM commerce_artwork_contracts
+         WHERE id=99002 AND artist_user_id=99003 AND signed_artist_user_id=99002
+    """),"1","contract ownership moved while original signed party remains preserved")
 
-    print("PASS: commerce artist identity, claim uniqueness, approval integrity, and historical FK")
+    query("""
+        UPDATE commerce_artist_invitations
+           SET status='USED',consumed_by_user_id=99003,consumed_at=NOW(6)
+         WHERE id=999
+    """)
+    query("""
+        UPDATE commerce_artist_profiles SET user_id=99003 WHERE user_id=99002
+    """)
+    query("""
+        INSERT INTO commerce_artist_consolidations
+            (invitation_id,original_user_id,canonical_user_id,
+             consolidation_kind,artworks_moved,contracts_moved)
+        VALUES (999,99002,99003,'MERGE',1,1)
+    """)
+    expect_sql_failure("""
+        INSERT INTO commerce_artist_consolidations
+            (invitation_id,original_user_id,canonical_user_id,consolidation_kind)
+        VALUES (999,99002,99004,'MERGE')
+    ""","duplicate invite cannot be redeemed twice")
+    print("PASS: staff-only invite constraints and preserved signed contract attribution")
 
 
 def main() -> int:
@@ -157,7 +135,7 @@ def main() -> int:
         verify()
         compose("run","--rm","flyway","validate")
     except SmokeFailure as error:
-        print(f"Commerce artist claim smoke failed: {error}",file=sys.stderr)
+        print(f"Commerce artist invitation smoke failed: {error}",file=sys.stderr)
         status=1
     finally:
         if preflight:
