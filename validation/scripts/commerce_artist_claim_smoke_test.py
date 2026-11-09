@@ -34,8 +34,13 @@ def verify() -> None:
         VALUES (99002,'External Art','@artist','not_verified@example.invalid',99001)
     """)
     require_equal(query("""
-        SELECT COUNT(*) FROM users
-         WHERE id=99002 AND email IS NULL AND password_hash IS NULL
+        SELECT COUNT(*) FROM information_schema.COLUMNS
+         WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='users'
+           AND COLUMN_NAME IN ('email','password_hash')
+    """),"2","users login credential columns remain present")
+    require_equal(query("""
+        SELECT COUNT(*) FROM `users`
+         WHERE `id`=99002 AND `email` IS NULL AND `password_hash` IS NULL
     """),"1","commercial artist is not a login credential")
     expect_sql_failure("""
         INSERT INTO commerce_artist_profiles (user_id,artist_name,created_by_user_id)
