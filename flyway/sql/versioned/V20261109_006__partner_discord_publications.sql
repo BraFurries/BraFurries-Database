@@ -39,6 +39,8 @@ CREATE TABLE partner_discord_publications (
     community_id INT(11) NOT NULL,
     exclusive_channel_enabled TINYINT(1) NOT NULL DEFAULT 0,
     existing_text_channel_id BIGINT(20) NULL,
+    adopt_existing_text_channel TINYINT(1) NOT NULL DEFAULT 0,
+    representative_discord_user_id BIGINT(20) NULL,
     thread_id BIGINT(20) NULL,
     thread_intro_message_id BIGINT(20) NULL,
     text_channel_id BIGINT(20) NULL,
@@ -60,7 +62,7 @@ CREATE TABLE partner_discord_publications (
     CONSTRAINT fk_pdp_config FOREIGN KEY (community_id)
         REFERENCES partner_discord_config (community_id)
         ON UPDATE RESTRICT ON DELETE RESTRICT,
-    CONSTRAINT ck_pdp_exclusive CHECK (exclusive_channel_enabled IN (0,1)),
+    CONSTRAINT ck_pdp_exclusive CHECK (exclusive_channel_enabled IN (0,1) AND adopt_existing_text_channel IN (0,1)),
     CONSTRAINT ck_pdp_managed CHECK (text_channel_created_by_bot IN (0,1)),
     CONSTRAINT ck_pdp_revisions CHECK
         (desired_revision >= 1 AND applied_revision >= 0
