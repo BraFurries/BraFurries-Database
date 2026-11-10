@@ -1,6 +1,7 @@
 -- Optional Discord-only announcement, independent from partners.description.
--- Applied only through BraFurries Database/Flyway. Existing partner records
--- and published thread/message references remain untouched.
+-- Schema authority: BraFurries-Database. Flyway validates on disposable DB;
+-- until production baseline adoption, this reviewed DDL is applied manually.
+-- Existing partner records and message references remain untouched.
 ALTER TABLE partner_discord_publications
     ADD COLUMN announcement_markdown MEDIUMTEXT NULL,
     ADD COLUMN announcement_links_mode VARCHAR(20) NOT NULL DEFAULT 'INLINE_ONLY',
