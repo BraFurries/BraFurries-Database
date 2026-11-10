@@ -19,6 +19,8 @@ CREATE TABLE partner_discord_config (
         ON UPDATE CURRENT_TIMESTAMP(6),
     PRIMARY KEY (community_id),
     UNIQUE KEY uq_partner_discord_guild (guild_id),
+    CONSTRAINT ck_pdc_parent_category CHECK
+        (thread_parent_channel_id IS NULL OR category_id IS NOT NULL),
     CONSTRAINT fk_pdc_community FOREIGN KEY (community_id)
         REFERENCES communities (id) ON UPDATE RESTRICT ON DELETE RESTRICT,
     CONSTRAINT ck_pdc_category_origin CHECK
@@ -57,6 +59,7 @@ CREATE TABLE partner_discord_publications (
     KEY idx_pdp_community_revision (community_id, desired_revision, applied_revision),
     UNIQUE KEY uq_pdp_thread (thread_id),
     UNIQUE KEY uq_pdp_text_channel (text_channel_id),
+    UNIQUE KEY uq_pdp_existing_text_channel (existing_text_channel_id),
     CONSTRAINT fk_pdp_partner FOREIGN KEY (partner_id)
         REFERENCES partners (id) ON UPDATE RESTRICT ON DELETE RESTRICT,
     CONSTRAINT fk_pdp_config FOREIGN KEY (community_id)
@@ -90,6 +93,7 @@ CREATE TABLE partner_discord_audit (
         REFERENCES users (id) ON UPDATE RESTRICT ON DELETE RESTRICT,
     CONSTRAINT ck_pda_action CHECK (action IN (
         'CONFIG_UPDATED', 'PARTNER_OPTION_UPDATED', 'SYNC_REQUESTED',
-        'SYNC_SUCCEEDED', 'SYNC_FAILED', 'POST_PUBLISHED'
+        'SYNC_SUCCEEDED', 'SYNC_FAILED', 'POST_PUBLISHED',
+        'UNPUBLISHED'
     ))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
