@@ -1,9 +1,12 @@
 # Rollout — anúncio Markdown dos parceiros no Discord (V20261110_001)
 
+**Produção ainda não foi oficialmente baselined no Flyway** (consulte `README.md` e ADR 0002). A migration é versionada e validada pelo Flyway em ambiente descartável, mas, até existir o wrapper de produção, sua aplicação no MariaDB de produção é **manual e excepcional**, copiando exatamente o DDL revisado do arquivo `V20261110_001`. Não executar `flyway migrate` em produção nem criar uma tabela/histórico Flyway fictício. Registrar evidências de pré-flight e pós-flight.
+
+
 ## Pré-flight
 - Confirmar backup recente do MariaDB e que o schema selecionado é o de produção.
 - Verificar que `V20261109_006` (publicações Discord) já foi aplicado.
-- Verificar que `V20261110_001` ainda não está registrado pelo Flyway.
+- Verificar que `V20261110_001` ainda não foi espelhada manualmente e que não existem colunas parcialmente criadas.
 - Conferir cardinalidade e IDs sem modificar dados:
 
 ```sql
@@ -19,7 +22,7 @@ WHERE table_schema = DATABASE()
   );
 ```
 
-Esperado antes da migration: `colunas_novas=0` (interromper se parcial). Rodar **o arquivo versionado pelo Flyway** no Database, não criar DDL na API/Coddy.
+Esperado antes da migration: `colunas_novas=0` (interromper se parcial). Em produção, executar **somente o DDL do arquivo versionado e revisado do Database**, em sessão apropriada e após backup. A API e o Coddy não executam DDL. O CI valida Flyway em MariaDB descartável; não há provisionamento automático de produção.
 
 ## Pós-flight
 ```sql
@@ -44,7 +47,7 @@ FROM partner_discord_publications;
 Esperado: quatro colunas; registros preservados; todos os registros preexistentes com `INLINE_ONLY`, `[]` e Markdown nulo.
 
 ## Ordem
-1. Database (Flyway migration e pós-flight confirmados).
+1. Database (migration versionada aprovada, aplicação manual transitória e pós-flight confirmados).
 2. Coddy (runtime suporta formato Markdown, preserva recursos e IDs legados).
 3. API (contratos e atualização de revisões).
 4. Front (editor e ações independentes de salvar e sincronizar).
