@@ -34,7 +34,7 @@ def verify() -> None:
         "SELECT announcement_part_message_ids FROM partner_discord_publications "
         "WHERE partner_id=99101"
     ), "[]", "existing publications have no continuation messages")
-    query("UPDATE partner_discord_publications SET "
+    query("SET NAMES utf8mb4; UPDATE partner_discord_publications SET "
           "announcement_markdown='# 🐑 República Indie\\nBem-vindos!', "
           "announcement_links_mode='APPEND_MISSING', "
           "announcement_public_contact='Contato: equipe Indie', "
