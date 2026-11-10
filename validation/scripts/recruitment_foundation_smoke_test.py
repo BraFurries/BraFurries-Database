@@ -218,7 +218,11 @@ def run() -> None:
             "WHERE TABLE_SCHEMA=DATABASE() "
             "AND TABLE_NAME IN ('commerce_production_batch_revisions',"
             "'commerce_payment_metadata_revisions','commerce_cash_metadata_revisions')"
-        )), "schema count includes OAuth, onboarding, artists and metadata revisions",
+        )) + int(query(
+            "SELECT COUNT(*) FROM information_schema.TABLES "
+            "WHERE TABLE_SCHEMA=DATABASE() "
+            "AND TABLE_NAME IN ('partner_discord_config','partner_discord_publications','partner_discord_audit')"
+        )), "schema count includes OAuth, onboarding, artists, revisions and partner Discord",
     )
     count(
         "SELECT COUNT(DISTINCT CONSTRAINT_NAME) FROM "
