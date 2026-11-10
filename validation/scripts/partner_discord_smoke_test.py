@@ -26,6 +26,29 @@ def verify() -> None:
     require_equal(query("SELECT exclusive_channel_enabled FROM "
                         "partner_discord_publications WHERE partner_id=99101"),
                   "1", "exclusive channel request persisted")
+    require_equal(query(
+        "SELECT announcement_links_mode FROM partner_discord_publications "
+        "WHERE partner_id=99101"
+    ), "INLINE_ONLY", "existing partners default to inline links")
+    require_equal(query(
+        "SELECT announcement_part_message_ids FROM partner_discord_publications "
+        "WHERE partner_id=99101"
+    ), "[]", "existing publications have no continuation messages")
+    query("SET NAMES utf8mb4; UPDATE partner_discord_publications SET "
+          "announcement_markdown='# 🐑 República Indie\\nBem-vindos!', "
+          "announcement_links_mode='APPEND_MISSING', "
+          "announcement_public_contact='Contato: equipe Indie', "
+          "announcement_part_message_ids='[\\\"123456789012345678\\\"]' "
+          "WHERE partner_id=99101")
+    require_equal(query(
+        "SELECT announcement_links_mode FROM partner_discord_publications "
+        "WHERE partner_id=99101"
+    ), "APPEND_MISSING", "Markdown link mode persists")
+    expect_sql_failure(
+        "UPDATE partner_discord_publications SET announcement_links_mode='UNKNOWN' "
+        "WHERE partner_id=99101",
+        "invalid announcement link mode rejected")
+
     expect_sql_failure(
         "INSERT INTO partner_discord_config (community_id,guild_id) "
         "VALUES (99102,123456789012345678)",
