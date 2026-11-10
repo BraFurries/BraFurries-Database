@@ -20,13 +20,15 @@ Threads públicas herdam permissões do canal pai. Não existe overwrite por thr
 - `partner_discord_config` contém exclusivamente o guild oficial associado à Community permitida.
 - `partner_discord_publications` guarda o desejo do canal exclusivo, escolha opcional de canal preexistente e IDs aplicados pelo Coddy. `desired_revision` / `applied_revision` tornam drift visível.
 - Configuração de categoria/canal existente exige verificação de tipo, guild, permissões e confirmação da adoção; não mudar canais alheios silenciosamente.
-- Desativação/exclusão tem preflight e limpeza coordenada; RESTRICT impede perda acidental do mapeamento de publicação.
+- Status suspenso/inativo só interrompe publicações na API imediatamente; a revogação nativa no Discord precisa de sincronização confirmada pelo Coddy.
+- Despublicação administrativa explícita (`DELETE /admin/partners/{partnerId}/discord`) arquiva a thread, revoga escrita, oculta canais criados pelo Coddy e só então remove o mapeamento; o histórico no Discord permanece. FK RESTRICT impede excluir parceiro antes dessa operação.
+- Ausência de Discord conectado ou identidade ambígua do representante impede criar canal exclusivo. A API nunca seleciona a primeira identidade arbitrariamente.
 - Criação de recursos deve ser idempotente e reconciliável por ID e marcador estável do parceiro.
 - Mudanças administrativas exigem auditoria (ator, recurso, antes/depois).
 
 ## Execução
 
-1. Revisar e integrar migration do Database, sem executá-la automaticamente.
+1. Revisar e integrar migration do Database, sem executá-la automaticamente; verificar três tabelas novas e limites de IDs externos.
 2. Implementar Coddy read-only posting, reconciliação, permissões nativas de canais e testes isolados.
 3. Implementar API CRUD/configuração e autenticação de publicação, com testes de autorização/isolamento; deploy só após migration.
 4. Integrar a aba Discord no Front e editar opção de canal exclusivo por parceiro; testar build e fluxo de alteração.
