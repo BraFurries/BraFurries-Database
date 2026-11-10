@@ -68,3 +68,28 @@ CREATE TABLE partner_discord_publications (
         (desired_revision >= 1 AND applied_revision >= 0
          AND applied_revision <= desired_revision)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- A small append-only audit records who requested configuration, channel
+-- adoption and publication. Do not persist private tokens or message contents.
+CREATE TABLE partner_discord_audit (
+    id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+    community_id INT(11) NOT NULL,
+    partner_id INT(11) NULL,
+    actor_user_id INT(11) NOT NULL,
+    action VARCHAR(40) NOT NULL,
+    details VARCHAR(512) NULL,
+    created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    PRIMARY KEY (id),
+    KEY idx_pda_partner_created (partner_id, created_at),
+    KEY idx_pda_community_created (community_id, created_at),
+    CONSTRAINT fk_pda_community FOREIGN KEY (community_id)
+        REFERENCES communities (id) ON UPDATE RESTRICT ON DELETE RESTRICT,
+    CONSTRAINT fk_pda_partner FOREIGN KEY (partner_id)
+        REFERENCES partners (id) ON UPDATE RESTRICT ON DELETE SET NULL,
+    CONSTRAINT fk_pda_actor FOREIGN KEY (actor_user_id)
+        REFERENCES users (id) ON UPDATE RESTRICT ON DELETE RESTRICT,
+    CONSTRAINT ck_pda_action CHECK (action IN (
+        'CONFIG_UPDATED', 'PARTNER_OPTION_UPDATED', 'SYNC_REQUESTED',
+        'SYNC_SUCCEEDED', 'SYNC_FAILED', 'POST_PUBLISHED'
+    ))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
