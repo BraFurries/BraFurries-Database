@@ -1,6 +1,6 @@
 manifest_version: 1
 last_reviewed: '2026-10-20'
-table_count_expected: 107
+table_count_expected: 109
 schema_authority: BraFurries-Database
 semantics:
   runtime_access: Normal application data access; excludes identity-link reads and migration execution.
@@ -825,6 +825,53 @@ tables:
   - schema-audit-v2
   - coddy-schema-current.sql-external-evidence
   notes: Destructive identity consolidation is abandoned; records remain attached to their original User.
+- table: coddy_admin_action_audit
+  status: ACTIVE
+  domain_owner: API
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-API
+  runtime_writers:
+  - BraFurries-API
+  identity_merge_writer: []
+  current_ddl_owner: BRA_FURRIES_DATABASE_FLYWAY
+  id_semantics:
+  - actor_user_id=INTERNAL_USERS_ID
+  - community_id=TENANT_COMMUNITY_ID
+  - guild_id=DISCORD_GUILD_SNOWFLAKE_WITHOUT_FK
+  - channel_id=DISCORD_CHANNEL_SNOWFLAKE_WITHOUT_FK
+  logical_key: request_key
+  physical_keys: PRIMARY(id), UNIQUE(request_key)
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-API
+  current_ddl_paths: []
+  evidence:
+  - flyway-V20261111_002
+  notes: 'Global ADMIN-only operations; only MESSAGE_SEND has Community tenant scope. Content is represented only by SHA-256.'
+- table: coddy_presence_settings
+  status: ACTIVE
+  domain_owner: API
+  schema_authority: BraFurries-Database
+  runtime_readers:
+  - BraFurries-API
+  - BraFurries-Discord
+  runtime_writers:
+  - BraFurries-API
+  identity_merge_writer: []
+  current_ddl_owner: BRA_FURRIES_DATABASE_FLYWAY
+  id_semantics:
+  - updated_by_user_id=INTERNAL_USERS_ID
+  logical_key: singleton_id=1
+  physical_keys: PRIMARY(singleton_id)
+  merge_policy: NOT_APPLICABLE
+  current_consumers:
+  - BraFurries-API
+  - BraFurries-Discord
+  current_ddl_paths: []
+  evidence:
+  - flyway-V20261111_002
+  notes: 'Global desired Discord presence, not health telemetry; Coddy reapplies on gateway READY.'
 - table: community_audit_log
   status: ACTIVE
   domain_owner: API
