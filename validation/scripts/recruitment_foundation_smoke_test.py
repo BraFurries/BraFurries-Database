@@ -222,7 +222,11 @@ def run() -> None:
             "SELECT COUNT(*) FROM information_schema.TABLES "
             "WHERE TABLE_SCHEMA=DATABASE() "
             "AND TABLE_NAME IN ('partner_discord_config','partner_discord_publications','partner_discord_audit')"
-        )), "schema count includes OAuth, onboarding, artists, revisions and partner Discord",
+        )) + int(query(
+            "SELECT COUNT(*) FROM information_schema.TABLES "
+            "WHERE TABLE_SCHEMA=DATABASE() "
+            "AND TABLE_NAME IN ('coddy_presence_settings','coddy_admin_action_audit')"
+        )), "schema count includes OAuth, onboarding, artists, revisions, partner Discord and Coddy admin",
     )
     count(
         "SELECT COUNT(DISTINCT CONSTRAINT_NAME) FROM "
