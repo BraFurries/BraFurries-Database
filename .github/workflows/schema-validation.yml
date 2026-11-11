@@ -94,6 +94,9 @@ jobs:
       - name: Verify social account reconciliation schema on MariaDB
         run: python validation/scripts/social_account_reconciliation_smoke_test.py
 
+      - name: Verify voice XP diagnostic expiry and index on disposable MariaDB
+        run: python validation/scripts/voice_xp_audit_retention_smoke_test.py
+
       - name: Run disposable Flyway smoke test
         run: python validation/scripts/smoke_test.py
 
