@@ -3007,6 +3007,7 @@ tables:
   - BraFurries-Discord
   runtime_writers:
   - BraFurries-Discord
+  - BraFurries-API
   identity_merge_writer: []
   current_ddl_owner: BRA_FURRIES_DISCORD_RUNTIME
   id_semantics:
@@ -3018,12 +3019,13 @@ tables:
   merge_policy: NOT_APPLICABLE
   current_consumers:
   - BraFurries-Discord
+  - BraFurries-API
   current_ddl_paths:
   - BraFurries-Discord/cogs/xp.py::XpCog initialization
   evidence:
   - schema-audit-v2
   - coddy-schema-current.sql-external-evidence
-  notes: ''
+  notes: 'Coddy produces transient calibration diagnostics; API performs opt-in 72-hour bounded retention after Database index rollout.'
 - table: voice_xp_daily_metrics
   status: ACTIVE
   domain_owner: DISCORD
