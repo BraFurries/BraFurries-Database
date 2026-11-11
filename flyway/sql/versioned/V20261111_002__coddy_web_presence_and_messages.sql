@@ -19,7 +19,7 @@ CREATE TABLE coddy_presence_settings (
     CONSTRAINT ck_cps_activity CHECK (activity_type IN ('PLAYING', 'LISTENING', 'WATCHING', 'CUSTOM')),
     CONSTRAINT ck_cps_availability CHECK (availability IN ('online', 'idle', 'dnd', 'invisible')),
     CONSTRAINT ck_cps_revision CHECK (revision > 0),
-    CONSTRAINT fk_cps_actor FOREIGN KEY (updated_by_user_id)
+    CONSTRAINT fk_coddy_presence_updated_by_user FOREIGN KEY (updated_by_user_id)
         REFERENCES users(id) ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -46,9 +46,9 @@ CREATE TABLE coddy_admin_action_audit (
     UNIQUE KEY uq_caa_request_key (request_key),
     KEY idx_caa_actor_time (actor_user_id, created_at),
     KEY idx_caa_community_time (community_id, created_at),
-    CONSTRAINT fk_caa_actor FOREIGN KEY (actor_user_id)
+    CONSTRAINT fk_coddy_admin_action_actor_user FOREIGN KEY (actor_user_id)
         REFERENCES users(id) ON DELETE RESTRICT ON UPDATE RESTRICT,
-    CONSTRAINT fk_caa_community FOREIGN KEY (community_id)
+    CONSTRAINT fk_coddy_admin_action_community FOREIGN KEY (community_id)
         REFERENCES communities(id) ON DELETE RESTRICT ON UPDATE RESTRICT,
     CONSTRAINT ck_caa_action_type CHECK (action_type IN ('PRESENCE_UPDATE', 'MESSAGE_SEND')),
     CONSTRAINT ck_caa_outcome CHECK (outcome IN ('REQUESTED', 'APPLIED', 'SENT', 'FAILED', 'UNKNOWN')),
