@@ -7,6 +7,7 @@
 - Migration: `flyway/sql/versioned/V20261112_001__commerce_contract_document_preparations.sql` (Database PR #64).
 - Adição de `commerce_contract_templates.full_text` como `LONGTEXT NULL`: os modelos preexistentes ficam válidos e **sem texto integral** até serem atualizados.
 - Nova tabela `commerce_contract_preparations`: minutas PDF imutáveis geradas em bucket R2 privado, com snapshot das cláusulas, das condições financeiras e das qualificações informadas das duas partes. Estados PENDING/SIGNED/CANCELLED e UNIQUE de minuta pendente por arte.
+- Índice único composto adicionado em `commerce_artwork_contracts(id, artwork_id)` para a FK composta impedir vínculo com um contrato assinado de **outra arte**.
 - Nenhum histórico de `commerce_artwork_contracts` é convertido, sobrescrito ou excluído. O contrato só entra em vigor após envio humano de PDF assinado.
 - Comercial é um recurso exclusivamente BraFurries (não há `community_id`). Permissão `CONTRACTS_MANAGE` é sempre validada pela API, não pelo Front.
 - **N/N-1:** API antiga ignora a coluna e tabela novas. API nova depende delas. Ordem: **Database → API PR #98 → Front PR #84**. Coddy não participa.
@@ -79,7 +80,7 @@ SELECT COUNT(*) AS tenant_column_count
    AND table_name='commerce_contract_preparations' AND column_name='community_id';
 ```
 
-Esperado: `full_text LONGTEXT NULL`, nova tabela com PK/UNIQUE de `pending_artwork_id` e FKs, zero minutas iniciais, zero tenant columns, contagens legadas **iguais às do preflight**.
+Esperado: `full_text LONGTEXT NULL`, nova tabela com PK/UNIQUE de `pending_artwork_id` e FKs (incluindo `(signed_contract_id, artwork_id)` → `commerce_artwork_contracts(id, artwork_id)`), novo índice composto `uq_cac_id_artwork`, zero minutas iniciais, zero tenant columns, contagens legadas **iguais às do preflight**.
 
 ## API, UI, riscos e homologação
 
