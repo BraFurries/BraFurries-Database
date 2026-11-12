@@ -6,6 +6,12 @@
 ALTER TABLE commerce_contract_templates
     ADD COLUMN full_text LONGTEXT NULL AFTER description;
 
+-- A signed document linked to a preparation must belong to the same artwork.
+-- Id alone is globally unique, but a composite FK enforces this invariant in
+-- the database even if another writer bypasses the control-plane API.
+ALTER TABLE commerce_artwork_contracts
+    ADD UNIQUE KEY uq_cac_id_artwork (id, artwork_id);
+
 -- A preparation is an UNSIGNED immutable PDF awaiting signatures.
 -- This table never grants commercial rights; only commerce_artwork_contracts
 -- gains an ACTIVE agreement after staff uploads an externally signed PDF.
@@ -55,8 +61,8 @@ CREATE TABLE commerce_contract_preparations (
     CONSTRAINT fk_ccprep_template FOREIGN KEY (template_id)
         REFERENCES commerce_contract_templates(id)
         ON UPDATE RESTRICT ON DELETE RESTRICT,
-    CONSTRAINT fk_ccprep_signed FOREIGN KEY (signed_contract_id)
-        REFERENCES commerce_artwork_contracts(id)
+    CONSTRAINT fk_ccprep_signed FOREIGN KEY (signed_contract_id, artwork_id)
+        REFERENCES commerce_artwork_contracts(id, artwork_id)
         ON UPDATE RESTRICT ON DELETE RESTRICT,
     CONSTRAINT fk_ccprep_creator FOREIGN KEY (created_by_user_id)
         REFERENCES users(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
