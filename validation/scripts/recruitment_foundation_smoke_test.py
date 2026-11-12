@@ -226,6 +226,10 @@ def run() -> None:
             "SELECT COUNT(*) FROM information_schema.TABLES "
             "WHERE TABLE_SCHEMA=DATABASE() "
             "AND TABLE_NAME IN ('coddy_presence_settings','coddy_admin_action_audit')"
+        )) + int(query(
+            "SELECT COUNT(*) FROM information_schema.TABLES "
+            "WHERE TABLE_SCHEMA=DATABASE() "
+            "AND TABLE_NAME='commerce_contract_preparations'"
         )), "schema count includes OAuth, onboarding, artists, revisions, partner Discord and Coddy admin",
     )
     count(
