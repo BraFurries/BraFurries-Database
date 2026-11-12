@@ -265,6 +265,23 @@ def validate_catalog() -> None:
         SELECT COUNT(*) FROM commerce_contract_preparations
          WHERE id=92001 AND status='CANCELLED' AND signed_contract_id IS NULL
     """), "1", "cancellation does not activate any contract")
+    # Explicit cross-art integrity: the signed PDF referenced by a
+    # preparation must belong to that same artwork, not just any valid ID.
+    query("""
+        INSERT INTO commerce_artworks
+            (id,title,artist_user_id,creation_cost,status,created_by_user_id)
+        VALUES (92002,'Second artwork',92003,0.00,'DRAFT',92001)
+    """)
+    expect_sql_failure("""
+        UPDATE commerce_contract_preparations
+           SET artwork_id=92002,artist_user_id=92003,status='SIGNED',
+               signed_contract_id=92001
+         WHERE id=92001
+    """, "a preparation cannot link a signed contract from another artwork")
+    require_equal(query("""
+        SELECT COUNT(*) FROM commerce_contract_preparations
+         WHERE id=92001 AND artwork_id=92001 AND status='CANCELLED'
+    """), "1", "cross-art signed-contract link rejected without changing the draft")
     print("PASS: commerce catalog FKs, constraints, active agreement uniqueness, cost precision")
 
 def main() -> int:
