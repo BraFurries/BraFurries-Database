@@ -192,6 +192,96 @@ def validate_catalog() -> None:
     """)
     require_equal(query("SELECT COUNT(*) FROM commerce_artwork_files WHERE id=92001 AND status='ARCHIVED'"),
                   "1","archived file metadata remains auditable")
+    # Generated commercial documents are not active agreements. Legacy signed
+    # contracts remain intact, while drafts are isolated by artwork, version
+    # snapshot, private checksum and explicit state transitions.
+    require_equal(query("""
+        SELECT COUNT(*) FROM information_schema.COLUMNS
+         WHERE TABLE_SCHEMA=DATABASE()
+           AND TABLE_NAME='commerce_contract_templates'
+           AND COLUMN_NAME='full_text'
+    """), "1", "contract templates have full-text terms")
+    require_equal(query("""
+        SELECT COUNT(*) FROM information_schema.TABLES
+         WHERE TABLE_SCHEMA=DATABASE()
+           AND TABLE_NAME='commerce_contract_preparations'
+    """), "1", "unsigned contract preparation table exists")
+    require_equal(query("""
+        SELECT COUNT(*) FROM information_schema.COLUMNS
+         WHERE TABLE_SCHEMA=DATABASE()
+           AND TABLE_NAME='commerce_contract_preparations'
+           AND COLUMN_NAME='community_id'
+    """), "0", "global commercial drafts do not leak Community tenancy")
+    require_equal(query("""
+        SELECT COUNT(*) FROM commerce_contract_preparations
+    """), "0", "no implicit conversion of legacy signed contracts")
+    query("""
+        UPDATE commerce_contract_templates
+           SET full_text='1. Direitos, concessões e responsabilidades.'
+         WHERE id=92001
+    """)
+    query("""
+        INSERT INTO commerce_contract_preparations
+          (id,artwork_id,template_id,artist_user_id,
+           template_name_snapshot,full_text_snapshot,
+           modality_snapshot,royalty_method_snapshot,royalty_percent_snapshot,
+           one_time_amount,effective_from,contractor_name,contractor_document,
+           contractor_address,artist_name,artist_document,artist_address,
+           generated_storage_key,generated_sha256,generated_bytes,created_by_user_id)
+        VALUES (92001,92001,92001,92002,'Royalties model',
+           '1. Direitos, concessões e responsabilidades.',
+           'ROYALTY','PERCENT_GROSS',12.5000,0.00,'2026-11-12',
+           'Pessoa contratante','123.456.789-00','Rua A',
+           'Pessoa artista','987.654.321-00','Rua B',
+           'commerce/contracts/92001/prepared-1.pdf',
+           'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+           2048,92001)
+    """)
+    expect_sql_failure("""
+        INSERT INTO commerce_contract_preparations
+          (artwork_id,template_id,artist_user_id,
+           template_name_snapshot,full_text_snapshot,
+           modality_snapshot,royalty_method_snapshot,royalty_percent_snapshot,
+           one_time_amount,effective_from,contractor_name,contractor_document,
+           contractor_address,artist_name,artist_document,artist_address,
+           generated_storage_key,generated_sha256,generated_bytes,created_by_user_id)
+        VALUES (92001,92001,92002,'Duplicate','1. Terms.',
+           'ROYALTY','PERCENT_GROSS',12.5000,0.00,'2026-11-12',
+           'Pessoa contratante','123','Rua A','Artista','987','Rua B',
+           'commerce/contracts/92001/prepared-2.pdf',
+           'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+           1000,92001)
+    """, "only one pending unsigned draft per artwork")
+    expect_sql_failure("""
+        UPDATE commerce_contract_preparations
+           SET status='SIGNED' WHERE id=92001
+    """, "draft cannot be marked signed without linked signed PDF and operator")
+    query("""
+        UPDATE commerce_contract_preparations
+           SET status='CANCELLED',completed_by_user_id=92001,
+               completed_at=CURRENT_TIMESTAMP(6) WHERE id=92001
+    """)
+    require_equal(query("""
+        SELECT COUNT(*) FROM commerce_contract_preparations
+         WHERE id=92001 AND status='CANCELLED' AND signed_contract_id IS NULL
+    """), "1", "cancellation does not activate any contract")
+    # Explicit cross-art integrity: the signed PDF referenced by a
+    # preparation must belong to that same artwork, not just any valid ID.
+    query("""
+        INSERT INTO commerce_artworks
+            (id,title,artist_user_id,creation_cost,status,created_by_user_id)
+        VALUES (92002,'Second artwork',92003,0.00,'DRAFT',92001)
+    """)
+    expect_sql_failure("""
+        UPDATE commerce_contract_preparations
+           SET artwork_id=92002,artist_user_id=92003,status='SIGNED',
+               signed_contract_id=92001
+         WHERE id=92001
+    """, "a preparation cannot link a signed contract from another artwork")
+    require_equal(query("""
+        SELECT COUNT(*) FROM commerce_contract_preparations
+         WHERE id=92001 AND artwork_id=92001 AND status='CANCELLED'
+    """), "1", "cross-art signed-contract link rejected without changing the draft")
     print("PASS: commerce catalog FKs, constraints, active agreement uniqueness, cost precision")
 
 def main() -> int:
