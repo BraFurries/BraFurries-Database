@@ -76,15 +76,21 @@ CREATE TABLE commerce_contract_preparations (
         (status='SIGNED' AND signed_contract_id IS NOT NULL
          AND completed_at IS NOT NULL AND completed_by_user_id IS NOT NULL)
     ),
+    CONSTRAINT ck_ccprep_modality CHECK (modality_snapshot IN
+        ('ONE_TIME_FEE','RIGHTS_ASSIGNMENT','EXCLUSIVE_LICENSE',
+         'NONEXCLUSIVE_LICENSE','ROYALTY','HYBRID')),
+    CONSTRAINT ck_ccprep_terms CHECK (CHAR_LENGTH(TRIM(full_text_snapshot)) > 0),
     CONSTRAINT ck_ccprep_royalties CHECK (
         (royalty_method_snapshot='NONE' AND royalty_percent_snapshot IS NULL
             AND royalty_fixed_snapshot IS NULL)
         OR
         (royalty_method_snapshot IN ('PERCENT_GROSS','PERCENT_NET')
+            AND royalty_percent_snapshot IS NOT NULL
             AND royalty_percent_snapshot BETWEEN 0 AND 100
             AND royalty_fixed_snapshot IS NULL)
         OR
         (royalty_method_snapshot IN ('FIXED_UNIT','FIXED_MONTH')
+            AND royalty_fixed_snapshot IS NOT NULL
             AND royalty_fixed_snapshot >= 0 AND royalty_percent_snapshot IS NULL)
     )
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
