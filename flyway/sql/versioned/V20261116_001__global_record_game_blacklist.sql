@@ -20,3 +20,20 @@ FROM blacklisted_games
 WHERE game_name IS NOT NULL
   AND CHAR_LENGTH(TRIM(game_name)) > 0
   AND TRIM(game_name) <> '0';
+
+-- Persistent audit of global configuration changes; legacy imported rows do not
+-- have identifiable actors, so migration itself does not fabricate events.
+CREATE TABLE record_global_blacklist_audit (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    entry_id INT(11) NULL,
+    game_name VARCHAR(50) NOT NULL,
+    action_type VARCHAR(8) NOT NULL,
+    actor_user_id INT(11) NOT NULL,
+    occurred_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    PRIMARY KEY (id),
+    KEY idx_rgba_time (occurred_at),
+    KEY idx_rgba_actor_time (actor_user_id, occurred_at),
+    CONSTRAINT fk_rgba_actor FOREIGN KEY (actor_user_id)
+        REFERENCES users(id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT ck_rgba_action CHECK (action_type IN ('ADD','REMOVE'))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
