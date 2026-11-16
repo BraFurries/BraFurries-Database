@@ -1,6 +1,12 @@
 -- Durable, per-Community role tools control-plane state. Discord side effects live
 -- exclusively in Coddy. Audit records are retained across bot restarts.
 -- Never use this table for global record blacklist policy.
+-- Enforce the Community/guild tuple physically, not just in the API.
+-- guild_id is already unique; this supplementary composite index is needed
+-- by MariaDB to reference both columns in the tenant foreign key.
+ALTER TABLE community_discord
+    ADD UNIQUE KEY uq_cd_guild_community_role_tools (guild_id, community_id);
+
 CREATE TABLE guild_role_tool_operations (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     community_id INT(11) NOT NULL,
@@ -33,19 +39,20 @@ CREATE TABLE guild_role_tool_operations (
         CASE WHEN status IN ('PENDING','RUNNING') THEN guild_id ELSE NULL END
     ) PERSISTENT,
     PRIMARY KEY (id),
+    UNIQUE KEY uq_grto_id_community_guild (id, community_id, guild_id),
     UNIQUE KEY uq_grto_guild_operation_key (guild_id, operation_key),
     UNIQUE KEY uq_grto_active_guild (active_guild_id),
     KEY idx_grto_community_recent (community_id, created_at),
     KEY idx_grto_guild_recent (guild_id, id),
-    KEY idx_grto_source (source_operation_id),
-    CONSTRAINT fk_grto_community FOREIGN KEY (community_id)
-        REFERENCES communities(id) ON DELETE RESTRICT ON UPDATE RESTRICT,
-    CONSTRAINT fk_grto_guild FOREIGN KEY (guild_id)
-        REFERENCES community_discord(guild_id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+    KEY idx_grto_source_scope (source_operation_id, community_id, guild_id),
+    CONSTRAINT fk_grto_community_guild FOREIGN KEY (guild_id, community_id)
+        REFERENCES community_discord(guild_id, community_id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
     CONSTRAINT fk_grto_actor FOREIGN KEY (actor_user_id)
         REFERENCES users(id) ON DELETE RESTRICT ON UPDATE RESTRICT,
-    CONSTRAINT fk_grto_source FOREIGN KEY (source_operation_id)
-        REFERENCES guild_role_tool_operations(id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT fk_grto_source_scope FOREIGN KEY (source_operation_id, community_id, guild_id)
+        REFERENCES guild_role_tool_operations(id, community_id, guild_id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
     CONSTRAINT ck_grto_type CHECK (
         operation_type IN ('BULK_ADD','RECOVERY_SCAN','RECOVERY_APPLY')
     ),
@@ -69,11 +76,10 @@ CREATE TABLE guild_role_tool_audit (
     PRIMARY KEY (id),
     KEY idx_grta_community_time (community_id, occurred_at),
     KEY idx_grta_guild_time (guild_id, occurred_at),
-    KEY idx_grta_operation (operation_id, id),
-    CONSTRAINT fk_grta_operation FOREIGN KEY (operation_id)
-        REFERENCES guild_role_tool_operations(id) ON DELETE RESTRICT ON UPDATE RESTRICT,
-    CONSTRAINT fk_grta_community FOREIGN KEY (community_id)
-        REFERENCES communities(id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+    KEY idx_grta_operation (operation_id, community_id, guild_id, id),
+    CONSTRAINT fk_grta_operation_scope FOREIGN KEY (operation_id, community_id, guild_id)
+        REFERENCES guild_role_tool_operations(id, community_id, guild_id)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
     CONSTRAINT fk_grta_actor FOREIGN KEY (actor_user_id)
         REFERENCES users(id) ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
