@@ -234,7 +234,17 @@ def run() -> None:
             "SELECT COUNT(*) FROM information_schema.TABLES "
             "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME IN "
             "('stats_coddy_command_executions','stats_admin_daily_snapshots')"
-        )), "schema count includes OAuth, onboarding, artists, revisions, Coddy admin and canonical analytics",
+        )) + int(query(
+            "SELECT COUNT(*) FROM information_schema.TABLES "
+            "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME IN "
+            "('record_global_blacklisted_games','record_global_blacklist_audit')"
+        )), "schema count includes OAuth, onboarding, artists, revisions, Coddy admin, analytics and global record blacklist",
+    )
+    count(
+        "SELECT COUNT(*) FROM information_schema.TABLES "
+        "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME IN "
+        "('record_global_blacklisted_games','record_global_blacklist_audit')",
+        2, "global record blacklist and audit tables exist",
     )
     count(
         "SELECT COUNT(DISTINCT CONSTRAINT_NAME) FROM "
