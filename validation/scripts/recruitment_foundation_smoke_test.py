@@ -217,6 +217,59 @@ def assert_role_tool_tenant_and_concurrency() -> None:
           "WHERE operation_id=910001 AND community_id=90503 AND guild_id=90503001",
           1, "same-Community job audit persists")
 
+    count(
+        "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() "
+        "AND TABLE_NAME='guild_role_tool_operations' "
+        "AND COLUMN_NAME IN ('source_role_id','removed_count')",
+        2, "source-role and removal counter are available",
+    )
+    count(
+        "SELECT COUNT(*) FROM guild_role_tool_operations "
+        "WHERE id IN (910001,910002) AND source_role_id IS NULL AND removed_count=0",
+        2, "legacy operations retain their prior state",
+    )
+    rejected(
+        "INSERT INTO guild_role_tool_operations "
+        "(community_id,guild_id,operation_key,operation_type,actor_user_id,"
+        "actor_discord_user_id,role_id,source_role_id,preview_fingerprint,status) "
+        "VALUES (90503,90503001,'invalid-same-role','ROLE_MIGRATE',"
+        "90503,90503777,90503444,90503444,REPEAT('a',64),'SUCCEEDED')",
+        "a migration cannot use the same origin and destination",
+        error_code=4025,
+    )
+    rejected(
+        "INSERT INTO guild_role_tool_operations "
+        "(community_id,guild_id,operation_key,operation_type,actor_user_id,"
+        "actor_discord_user_id,role_id,preview_fingerprint,status) "
+        "VALUES (90503,90503001,'invalid-no-origin','ROLE_MIGRATE',"
+        "90503,90503777,90503444,REPEAT('a',64),'SUCCEEDED')",
+        "migration requires a source role",
+        error_code=4025,
+    )
+    execute("UPDATE guild_role_tool_operations SET status='SUCCEEDED' WHERE id=910002")
+    execute(
+        "INSERT INTO guild_role_tool_operations "
+        "(community_id,guild_id,operation_key,operation_type,actor_user_id,"
+        "actor_discord_user_id,role_id,source_role_id,preview_fingerprint) "
+        "VALUES (90503,90503001,'move-roles','ROLE_MIGRATE',90503,90503777,"
+        "90503445,90503444,REPEAT('b',64))"
+    )
+    count(
+        "SELECT COUNT(*) FROM guild_role_tool_operations "
+        "WHERE operation_type='ROLE_MIGRATE' AND source_role_id=90503444 "
+        "AND role_id=90503445 AND removed_count=0",
+        1, "role transfers are persisted and default removal count is zero",
+    )
+    rejected(
+        "INSERT INTO guild_role_tool_operations "
+        "(community_id,guild_id,operation_key,operation_type,actor_user_id,"
+        "actor_discord_user_id,role_id,source_role_id,preview_fingerprint) "
+        "VALUES (90503,90503001,'parallel-move','ROLE_MIGRATE',"
+        "90503,90503777,90503446,90503444,REPEAT('c',64))",
+        "role migration is mutually exclusive with all other role jobs",
+        error_code=1062,
+    )
+
 
 
 def run() -> None:
