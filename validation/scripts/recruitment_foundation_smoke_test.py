@@ -234,7 +234,17 @@ def run() -> None:
             "SELECT COUNT(*) FROM information_schema.TABLES "
             "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME IN "
             "('stats_coddy_command_executions','stats_admin_daily_snapshots')"
-        )), "schema count includes OAuth, onboarding, artists, revisions, Coddy admin and canonical analytics",
+        )) + int(query(
+            "SELECT COUNT(*) FROM information_schema.TABLES "
+            "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME IN "
+            "('guild_role_tool_operations','guild_role_tool_audit')"
+        )), "schema count includes OAuth, onboarding, artists, revisions, Coddy admin, analytics and guild role tools",
+    )
+    count(
+        "SELECT COUNT(*) FROM information_schema.TABLES "
+        "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME IN "
+        "('guild_role_tool_operations','guild_role_tool_audit')",
+        2, "role tools durable operations and audit tables",
     )
     count(
         "SELECT COUNT(DISTINCT CONSTRAINT_NAME) FROM "
