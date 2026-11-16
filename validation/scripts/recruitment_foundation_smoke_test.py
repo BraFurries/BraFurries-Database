@@ -181,8 +181,8 @@ def assert_role_tool_tenant_and_concurrency() -> None:
     rejected(
         "INSERT INTO guild_role_tool_operations "
         "(community_id,guild_id,operation_key,operation_type,"
-        "actor_user_id,actor_discord_user_id,role_id) VALUES "
-        "(90504,90503001,'cross-tenant','BULK_ADD',90503,90503777,90503444)",
+        "actor_user_id,actor_discord_user_id,role_id,status) VALUES "
+        "(90504,90503001,'cross-tenant','BULK_ADD',90503,90503777,90503444,'SUCCEEDED')",
         "operation Community must match guild owning Community",
         error_code=1452,
     )
