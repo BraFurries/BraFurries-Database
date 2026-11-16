@@ -27,8 +27,8 @@ CREATE TABLE guild_role_tool_operations (
     error_code VARCHAR(96) NULL,
     started_at DATETIME(6) NULL,
     finished_at DATETIME(6) NULL,
-    created_at DATETIME(6) NOT NULL DEFAULT UTC_TIMESTAMP(6),
-    updated_at DATETIME(6) NOT NULL DEFAULT UTC_TIMESTAMP(6) ON UPDATE UTC_TIMESTAMP(6),
+    created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
     active_guild_id BIGINT(20) AS (
         CASE WHEN status IN ('PENDING','RUNNING') THEN guild_id ELSE NULL END
     ) PERSISTENT,
@@ -65,7 +65,7 @@ CREATE TABLE guild_role_tool_audit (
     actor_user_id INT(11) NULL,
     event_type VARCHAR(24) NOT NULL,
     detail VARCHAR(512) NULL,
-    occurred_at DATETIME(6) NOT NULL DEFAULT UTC_TIMESTAMP(6),
+    occurred_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     PRIMARY KEY (id),
     KEY idx_grta_community_time (community_id, occurred_at),
     KEY idx_grta_guild_time (guild_id, occurred_at),
