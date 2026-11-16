@@ -12,14 +12,29 @@ CREATE TABLE record_global_blacklisted_games (
     CONSTRAINT ck_rgbg_name_nonempty CHECK (CHAR_LENGTH(TRIM(game_name)) > 0)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- Preserve prior exclusions: all distinct legacy values become globally excluded,
--- under case-insensitive utf8mb4_general_ci collation. Avoid placeholder/empty names.
-INSERT IGNORE INTO record_global_blacklisted_games (game_name)
-SELECT DISTINCT TRIM(game_name)
-FROM blacklisted_games
-WHERE game_name IS NOT NULL
-  AND CHAR_LENGTH(TRIM(game_name)) > 0
-  AND TRIM(game_name) <> '0';
+-- Preserve prior exclusions when the legacy per-guild table exists.
+-- blacklisted_games is not part of the Flyway baseline, so fresh/disposable schemas
+-- may have no legacy table. Existing deployments still import every distinct name.
+-- Do not use INSERT IGNORE: a too-long legacy name must fail, not silently truncate.
+SET @record_legacy_blacklist_exists = (
+    SELECT COUNT(*)
+    FROM information_schema.TABLES
+    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'blacklisted_games'
+);
+SET @record_legacy_blacklist_import = IF(
+    @record_legacy_blacklist_exists = 1,
+    'INSERT INTO record_global_blacklisted_games (game_name)
+     SELECT DISTINCT TRIM(game_name)
+     FROM blacklisted_games
+     WHERE game_name IS NOT NULL
+       AND CHAR_LENGTH(TRIM(game_name)) > 0
+       AND TRIM(game_name) <> ''0''
+     ON DUPLICATE KEY UPDATE game_name = game_name',
+    'DO 0'
+);
+PREPARE record_legacy_blacklist_import_stmt FROM @record_legacy_blacklist_import;
+EXECUTE record_legacy_blacklist_import_stmt;
+DEALLOCATE PREPARE record_legacy_blacklist_import_stmt;
 
 -- Persistent audit of global configuration changes; legacy imported rows do not
 -- have identifiable actors, so migration itself does not fabricate events.
