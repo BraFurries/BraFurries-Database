@@ -179,10 +179,13 @@ def run() -> None:
     execute("INSERT INTO user_temp_roles "
             "(id,disc_community_id,disc_user_id,role_id,expiring_date,reason) "
             "VALUES (90503,90503,90503,90503444,'2030-01-01','Legacy reward')")
-    # The legacy game blacklist is not Flyway-managed. Seed it before the new
-    # official migration to exercise the existing-deployment import path.
-    execute("CREATE TABLE blacklisted_games ("
-            "server_guild_id BIGINT NOT NULL, game_name VARCHAR(50) NOT NULL)")
+    # The physical baseline already contains blacklisted_games, with a FK to
+    # community_discord. Seed distinct guilds before the global import.
+    execute("INSERT INTO communities (id,name) VALUES "
+            "(90504,'Record Fixture 2'),(90505,'Record Fixture 3')")
+    execute("INSERT INTO community_discord (id,community_id,name,guild_id) VALUES "
+            "(90504,90504,'Record Guild 2',90503002),"
+            "(90505,90505,'Record Guild 3',90503003)")
     execute("INSERT INTO blacklisted_games (server_guild_id, game_name) VALUES "
             "(90503001,'Visual Studio Code'),(90503002,'visual studio code'),"
             "(90503002,'  Jogo importado  '),(90503003,'0')")
@@ -258,9 +261,6 @@ def run() -> None:
             "SELECT COUNT(*) FROM information_schema.TABLES "
             "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME IN "
             "('record_global_blacklisted_games','record_global_blacklist_audit')"
-        )) + int(query(
-            "SELECT COUNT(*) FROM information_schema.TABLES "
-            "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='blacklisted_games'"
         )), "schema count includes OAuth, onboarding, artists, revisions, Coddy admin, analytics and global record blacklist",
     )
     count(
