@@ -163,9 +163,9 @@ def assert_unified_temp_roles() -> None:
 
 def assert_role_tool_tenant_and_concurrency() -> None:
     """Verify physical tenant isolation and a single active role job per guild."""
-    execute("INSERT INTO communities (id,name) VALUES (90504,'Second Role Fixture')")
+    execute("INSERT INTO communities (id,name) VALUES (90506,'Second Role Fixture')")
     execute("INSERT INTO community_discord (id,community_id,name,guild_id) "
-            "VALUES (90504,90504,'Second Role Guild',90504001)")
+            "VALUES (90506,90506,'Second Role Guild',90506001)")
     execute("INSERT INTO guild_role_tool_operations "
             "(id,community_id,guild_id,operation_key,operation_type,"
             "actor_user_id,actor_discord_user_id,role_id) VALUES "
@@ -182,7 +182,7 @@ def assert_role_tool_tenant_and_concurrency() -> None:
         "INSERT INTO guild_role_tool_operations "
         "(community_id,guild_id,operation_key,operation_type,"
         "actor_user_id,actor_discord_user_id,role_id,status) VALUES "
-        "(90504,90503001,'cross-tenant','BULK_ADD',90503,90503777,90503444,'SUCCEEDED')",
+        "(90506,90503001,'cross-tenant','BULK_ADD',90503,90503777,90503444,'SUCCEEDED')",
         "operation Community must match guild owning Community",
         error_code=1452,
     )
@@ -198,7 +198,7 @@ def assert_role_tool_tenant_and_concurrency() -> None:
         "INSERT INTO guild_role_tool_operations "
         "(community_id,guild_id,operation_key,operation_type,"
         "actor_user_id,actor_discord_user_id,role_id,source_operation_id) VALUES "
-        "(90504,90504001,'cross-tenant-source','RECOVERY_APPLY',"
+        "(90506,90506001,'cross-tenant-source','RECOVERY_APPLY',"
         "90503,90503777,90503444,910001)",
         "recovery source operation cannot reference another Community",
         error_code=1452,
@@ -206,7 +206,7 @@ def assert_role_tool_tenant_and_concurrency() -> None:
     rejected(
         "INSERT INTO guild_role_tool_audit "
         "(operation_id,community_id,guild_id,actor_user_id,event_type) VALUES "
-        "(910001,90504,90504001,90503,'REQUESTED')",
+        "(910001,90506,90506001,90503,'REQUESTED')",
         "role audit cannot use another Community or guild",
         error_code=1452,
     )
@@ -238,12 +238,35 @@ def run() -> None:
     execute("INSERT INTO user_temp_roles "
             "(id,disc_community_id,disc_user_id,role_id,expiring_date,reason) "
             "VALUES (90503,90503,90503,90503444,'2030-01-01','Legacy reward')")
+    # The physical baseline already contains blacklisted_games, with a FK to
+    # community_discord. Seed distinct guilds before the global import.
+    execute("INSERT INTO communities (id,name) VALUES "
+            "(90504,'Record Fixture 2'),(90505,'Record Fixture 3')")
+    execute("INSERT INTO community_discord (id,community_id,name,guild_id) VALUES "
+            "(90504,90504,'Record Guild 2',90503002),"
+            "(90505,90505,'Record Guild 3',90503003)")
+    execute("INSERT INTO blacklisted_games (server_guild_id, game_name) VALUES "
+            "(90503001,'Visual Studio Code'),(90503002,'visual studio code'),"
+            "(90503002,'  Jogo importado  '),(90503003,'0')")
     compose(
         "run", "--rm", "--no-deps", "flyway",
         "-locations=filesystem:/flyway/baseline,filesystem:/flyway/official",
         "migrate",
     )
     assert_unified_temp_roles()
+    count(
+        "SELECT COUNT(*) FROM record_global_blacklisted_games",
+        2, "legacy exclusions across guilds become one global set",
+    )
+    count(
+        "SELECT COUNT(*) FROM record_global_blacklisted_games "
+        "WHERE game_name IN ('visual studio code','Jogo importado')",
+        2, "global migration is case-insensitive and trims legacy names",
+    )
+    count(
+        "SELECT COUNT(*) FROM blacklisted_games",
+        4, "global migration preserves all legacy guild rows for rollback",
+    )
     assert_role_tool_tenant_and_concurrency()
     # Database #47 adds the shared OAuth proof table; #48 uses it but does not
     # recreate it. Both independent draft branches and the combined order must
@@ -297,8 +320,18 @@ def run() -> None:
         )) + int(query(
             "SELECT COUNT(*) FROM information_schema.TABLES "
             "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME IN "
+            "('record_global_blacklisted_games','record_global_blacklist_audit')"
+        )) + int(query(
+            "SELECT COUNT(*) FROM information_schema.TABLES "
+            "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME IN "
             "('guild_role_tool_operations','guild_role_tool_audit')"
-        )), "schema count includes OAuth, onboarding, artists, revisions, Coddy admin, analytics and guild role tools",
+        )), "schema count includes OAuth, onboarding, artists, revisions, Coddy admin, analytics, global blacklist and role tools",
+    )
+    count(
+        "SELECT COUNT(*) FROM information_schema.TABLES "
+        "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME IN "
+        "('record_global_blacklisted_games','record_global_blacklist_audit')",
+        2, "global record blacklist and audit tables exist",
     )
     count(
         "SELECT COUNT(*) FROM information_schema.TABLES "
