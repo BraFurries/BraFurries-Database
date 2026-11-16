@@ -29,7 +29,7 @@ SET @record_legacy_blacklist_import = IF(
      WHERE game_name IS NOT NULL
        AND CHAR_LENGTH(TRIM(game_name)) > 0
        AND TRIM(game_name) <> ''0''
-     ON DUPLICATE KEY UPDATE game_name = game_name',
+     ON DUPLICATE KEY UPDATE record_global_blacklisted_games.game_name = record_global_blacklisted_games.game_name',
     'DO 0'
 );
 PREPARE record_legacy_blacklist_import_stmt FROM @record_legacy_blacklist_import;
