@@ -334,6 +334,86 @@ def run() -> None:
         "'creator_studio_reference_links')",
         9, "Creator Studio's nine foundation tables exist",
     )
+    # Synthetic Creator Studio entitlement and cross-artist isolation checks.
+    execute(
+        "INSERT INTO users (id,display_name) VALUES "
+        "(99601,'Artist One'),(99602,'Artist Two'),(99603,'Studio Owner')"
+    )
+    execute(
+        "INSERT INTO creator_studio_subscriptions "
+        "(user_id,tier,source_kind,status,starts_at,expires_at,issued_by_user_id) "
+        "VALUES (99601,'FREE','INVITE','ACTIVE',"
+        "DATE_SUB(UTC_TIMESTAMP(6),INTERVAL 1 DAY),NULL,99603)"
+    )
+    execute(
+        "INSERT INTO creator_studio_subscriptions "
+        "(user_id,tier,source_kind,status,starts_at,expires_at,issued_by_user_id) "
+        "VALUES (99602,'PRO','PILOT','ACTIVE',"
+        "DATE_SUB(UTC_TIMESTAMP(6),INTERVAL 1 DAY),NULL,99603)"
+    )
+    count(
+        "SELECT COUNT(*) FROM creator_studio_subscriptions "
+        "WHERE user_id IN (99601,99602) AND status='ACTIVE' "
+        "AND starts_at<=UTC_TIMESTAMP(6) "
+        "AND (expires_at IS NULL OR expires_at>UTC_TIMESTAMP(6))",
+        2, "explicitly invited Free and lifetime Pro pilot users have access",
+    )
+    rejected(
+        "INSERT INTO creator_studio_subscriptions "
+        "(user_id,tier,source_kind,status,starts_at,expires_at,issued_by_user_id) "
+        "VALUES (99603,'FREE','PILOT','ACTIVE',"
+        "UTC_TIMESTAMP(6),NULL,99603)",
+        "pilot cannot be downgraded to Free", error_code=4025,
+    )
+    rejected(
+        "INSERT INTO creator_studio_subscriptions "
+        "(user_id,tier,source_kind,status,starts_at,expires_at,issued_by_user_id) "
+        "VALUES (99603,'PRO','BILLING','ACTIVE',"
+        "UTC_TIMESTAMP(6),NULL,99603)",
+        "paid Pro requires a finite billing entitlement", error_code=4025,
+    )
+    rejected(
+        "INSERT INTO creator_studio_subscriptions "
+        "(user_id,tier,source_kind,status,starts_at,expires_at,issued_by_user_id) "
+        "VALUES (99603,'PRO','PILOT','ACTIVE',"
+        "UTC_TIMESTAMP(6),DATE_ADD(UTC_TIMESTAMP(6),INTERVAL 1 DAY),99603)",
+        "pilot Pro must have no expiration", error_code=4025,
+    )
+    execute(
+        "INSERT INTO creator_studio_stage_definitions "
+        "(id,owner_user_id,name) VALUES "
+        "(9960101,99601,'Sketch'),(9960201,99602,'Sketch')"
+    )
+    execute(
+        "INSERT INTO creator_studio_workflows "
+        "(id,owner_user_id,name,is_default) VALUES "
+        "(9960101,99601,'Default',1)"
+    )
+    rejected(
+        "INSERT INTO creator_studio_workflow_steps "
+        "(owner_user_id,workflow_id,stage_definition_id,name,position) "
+        "VALUES (99601,9960101,9960201,'Sketch from wrong artist',1)",
+        "workflow cannot borrow another artist's stage", error_code=1452,
+    )
+    execute(
+        "INSERT INTO creator_studio_commissions "
+        "(id,owner_user_id,title,client_name,requested_on) "
+        "VALUES (9960101,99601,'Sample','Client Example',CURRENT_DATE())"
+    )
+    rejected(
+        "INSERT INTO creator_studio_commission_steps "
+        "(owner_user_id,commission_id,name,position) "
+        "VALUES (99602,9960101,'Foreign commission stage',1)",
+        "artist cannot attach stages to another artist's commission",
+        error_code=1452,
+    )
+    rejected(
+        "INSERT INTO creator_studio_reference_links "
+        "(owner_user_id,commission_id,url,position) "
+        "VALUES (99602,9960101,'https://example.invalid/ref',1)",
+        "artist cannot attach reference links to another commission",
+        error_code=1452,
+    )
     # Database #47 adds the shared OAuth proof table; #48 uses it but does not
     # recreate it. Both independent draft branches and the combined order must
     # keep the expected table count deterministic.
