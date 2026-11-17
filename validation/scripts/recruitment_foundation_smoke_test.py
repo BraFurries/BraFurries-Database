@@ -334,6 +334,12 @@ def run() -> None:
         "'creator_studio_reference_links')",
         9, "Creator Studio's nine foundation tables exist",
     )
+    count(
+        "SELECT COUNT(*) FROM information_schema.TABLES "
+        "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_TYPE='BASE TABLE' "
+        "AND TABLE_NAME='creator_studio_activity'",
+        1, "Creator Studio private activity timeline exists",
+    )
     # Synthetic Creator Studio entitlement and cross-artist isolation checks.
     execute(
         "INSERT INTO users (id,display_name) VALUES "
@@ -400,6 +406,28 @@ def run() -> None:
         "(id,owner_user_id,title,client_name,requested_on) "
         "VALUES (9960101,99601,'Sample','Client Example',CURRENT_DATE())"
     )
+    execute(
+        "INSERT INTO creator_studio_activity "
+        "(owner_user_id,commission_id,event_kind,description,occurred_on) "
+        "VALUES (99601,9960101,'REVISION_REQUEST','Adjust the pose',CURRENT_DATE())"
+    )
+    count(
+        "SELECT COUNT(*) FROM creator_studio_activity "
+        "WHERE owner_user_id=99601 AND commission_id=9960101",
+        1, "Creator artist can log a private revision request",
+    )
+    rejected(
+        "INSERT INTO creator_studio_activity "
+        "(owner_user_id,commission_id,event_kind,description,occurred_on) "
+        "VALUES (99602,9960101,'NOTE','Foreign client details',CURRENT_DATE())",
+        "timeline prevents cross-artist ownership", error_code=1452,
+    )
+    rejected(
+        "INSERT INTO creator_studio_activity "
+        "(owner_user_id,commission_id,event_kind,description,occurred_on) "
+        "VALUES (99601,9960101,'ACCEPTED','Unverified client approval',CURRENT_DATE())",
+        "timeline rejects unsupported approval state", error_code=4025,
+    )
     rejected(
         "INSERT INTO creator_studio_commission_steps "
         "(owner_user_id,commission_id,name,position) "
@@ -426,7 +454,7 @@ def run() -> None:
         "SELECT COUNT(*) FROM information_schema.TABLES "
         "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_TYPE='BASE TABLE' "
         "AND TABLE_NAME<>'flyway_schema_history'",
-        163 + discord_proof_tables + int(query(
+        164 + discord_proof_tables + int(query(
             "SELECT COUNT(*) FROM information_schema.TABLES "
             "WHERE TABLE_SCHEMA=DATABASE() "
             "AND TABLE_NAME='user_social_onboarding_challenges'"
