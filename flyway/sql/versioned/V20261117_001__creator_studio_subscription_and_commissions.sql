@@ -1,17 +1,17 @@
--- Creator Studio is a user-owned product, independent of Community and of
--- BraFurries' private commerce domain. No seed or automatic paid entitlement.
--- Apply manually, in order, after review; never from API/Coddy startup.
+-- Creator Studio belongs to users.id, independent of Community and commerce.
+-- A subscription row is BOTH the invitation/authorization gate and the tier.
+-- No automatic access, no seed grants and no payment handling in this migration.
+-- Pilot members receive perpetual PRO entitlements, not a trial expiring later.
+-- Migrate only from the Database repository after independent review.
 
--- The payment provider is deliberately NOT the authorization authority.
--- A future verified billing integration may provision/update this row.
--- Pilot grants are time-bounded complimentary subscriptions, not a
--- special API bypass. All Studio endpoints must check status and UTC window.
 CREATE TABLE creator_studio_subscriptions (
     user_id INT(11) NOT NULL,
+    tier VARCHAR(8) NOT NULL,
     source_kind VARCHAR(12) NOT NULL,
     status VARCHAR(12) NOT NULL DEFAULT 'ACTIVE',
     starts_at DATETIME(6) NOT NULL,
-    expires_at DATETIME(6) NOT NULL,
+    -- NULL means lifetime access: allowed for FREE invitations and PILOT PRO.
+    expires_at DATETIME(6) NULL,
     issued_by_user_id INT(11) NULL,
     external_reference VARCHAR(160) NULL,
     created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
@@ -24,26 +24,32 @@ CREATE TABLE creator_studio_subscriptions (
         REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
     CONSTRAINT fk_css_issuer FOREIGN KEY (issued_by_user_id)
         REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
-    CONSTRAINT ck_css_source CHECK (source_kind IN ('PAID', 'PILOT')),
+    CONSTRAINT ck_css_tier CHECK (tier IN ('FREE', 'PRO')),
+    CONSTRAINT ck_css_source CHECK (source_kind IN ('INVITE', 'PILOT', 'BILLING')),
     CONSTRAINT ck_css_status CHECK (status IN ('ACTIVE', 'SUSPENDED', 'REVOKED')),
-    CONSTRAINT ck_css_window CHECK (starts_at < expires_at),
-    CONSTRAINT ck_css_pilot_issuer CHECK (
-        source_kind <> 'PILOT' OR issued_by_user_id IS NOT NULL
+    CONSTRAINT ck_css_window CHECK (expires_at IS NULL OR starts_at < expires_at),
+    CONSTRAINT ck_css_origin CHECK (
+        (source_kind='INVITE' AND tier='FREE'
+            AND issued_by_user_id IS NOT NULL)
+        OR (source_kind='PILOT' AND tier='PRO' AND expires_at IS NULL
+            AND issued_by_user_id IS NOT NULL)
+        OR (source_kind='BILLING' AND tier='PRO' AND expires_at IS NOT NULL)
     )
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- Append-only access history; subscription mutations must be audited by
--- the API / future verified billing integration within its transaction.
+-- Append-only grant/revocation/upgrade history, written atomically by API.
+-- There is no "EXPIRED" event: expiry is computed from expires_at.
 CREATE TABLE creator_studio_subscription_events (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     user_id INT(11) NOT NULL,
     actor_user_id INT(11) NULL,
     action VARCHAR(24) NOT NULL,
+    tier VARCHAR(8) NOT NULL,
     source_kind VARCHAR(12) NOT NULL,
     previous_status VARCHAR(12) NULL,
     new_status VARCHAR(12) NOT NULL,
     starts_at DATETIME(6) NOT NULL,
-    expires_at DATETIME(6) NOT NULL,
+    expires_at DATETIME(6) NULL,
     occurred_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     PRIMARY KEY (id),
     KEY idx_csse_user_time (user_id, occurred_at),
@@ -53,9 +59,12 @@ CREATE TABLE creator_studio_subscription_events (
     CONSTRAINT fk_csse_actor FOREIGN KEY (actor_user_id)
         REFERENCES users (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
     CONSTRAINT ck_csse_action CHECK (
-        action IN ('ACTIVATED', 'RENEWED', 'SUSPENDED', 'REVOKED', 'EXPIRED')
+        action IN ('ACTIVATED', 'RENEWED', 'SUSPENDED', 'REVOKED', 'PLAN_CHANGED')
     ),
-    CONSTRAINT ck_csse_source CHECK (source_kind IN ('PAID', 'PILOT')),
+    CONSTRAINT ck_csse_tier CHECK (tier IN ('FREE', 'PRO')),
+    CONSTRAINT ck_csse_source CHECK (
+        source_kind IN ('INVITE', 'PILOT', 'BILLING')
+    ),
     CONSTRAINT ck_csse_prev CHECK (
         previous_status IS NULL OR
         previous_status IN ('ACTIVE', 'SUSPENDED', 'REVOKED')
