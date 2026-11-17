@@ -1,19 +1,38 @@
-# Creator Studio — schema V1 e acesso por assinatura
+# Creator Studio — modelo de dados e acesso autorizado (V1)
 
-## Escopo
+## Produto e isolamento
 
-Produto de organização de commissions para artistas com conta BraFurries.
-**Não** é o cadastro de artistas da Gestão Comercial nem um tenant Community.
-Toda linha privada referencia o usuário proprietário (`users.id`). Não há
-`community_id`, contrato comercial, associação automática com Patreon ou
-processamento de pagamentos nesta migration.
+Creator Studio é um produto de **organização de commissions**, pertencente à conta canônica `users.id`.
+Não é parte da Gestão Comercial da BraFurries, do sistema de permissões de Community nem do Patreon.
+Todo registro privado usa `owner_user_id`, com chaves compostas que impedem vincular
+objetos de artistas diferentes. A API deve exigir ownership em toda leitura e escrita.
 
-Migration: `V20261117_001__creator_studio_subscription_and_commissions.sql`.
+Migration da PR: `V20261117_001__creator_studio_subscription_and_commissions.sql`.
+Somente o repositório Database pode executar migrations Flyway. Não há DML de assinatura
+nem acesso concedido automaticamente.
 
-## Acesso por assinatura
+## Política de produto (17/11/2026)
 
-`creator_studio_subscriptions` registra **um período de acesso atual por usuário**.
-A API deve exigir, em *toda operação de dados*:
+- **Fase piloto (acesso fechado):** somente contas **explicitamente autorizadas** podem entrar.
+- **Free:** plano gratuito básico, reservado a contas autorizadas no momento. A futura
+  abertura de autoinscrição é decisão separada, não implementada agora.
+- **Pro:** plano completo pago futuramente, sem provedor de cobrança escolhido.
+- **Artistas do piloto:** **Pro vitalício**, como reconhecimento pela colaboração;
+  período sem expiração, sem cobrança futura e sem downgrade automático.
+- O acesso por assinatura/entitlement **não deve depender** de identidade no Patreon,
+  membro de Community, Artista Parceiro ou admin da Gestão Comercial.
+
+O conceito de `creator_studio_subscriptions` reúne autorização de entrada,
+`tier` e situação da assinatura. **Sem registro = sem acesso**, mesmo que
+exista plano Free no catálogo conceitual.
+
+| Origem | Plano | Vencimento | Como pode surgir |
+| --- | --- | --- | --- |
+| `INVITE` | `FREE` | Opcional: NULL para acesso gratuito sem vencimento | Concessão explícita por owner |
+| `PILOT` | `PRO` | Obrigatoriamente NULL (vitalício) | Concessão explícita por owner |
+| `BILLING` | `PRO` | Obrigatoriamente preenchido | Integração de cobrança server-side *futura* |
+
+A permissão efetiva é:
 
 ```sql
 SELECT 1
@@ -21,81 +40,69 @@ SELECT 1
  WHERE user_id = ?
    AND status = 'ACTIVE'
    AND starts_at <= UTC_TIMESTAMP(6)
-   AND expires_at > UTC_TIMESTAMP(6);
+   AND (expires_at IS NULL OR expires_at > UTC_TIMESTAMP(6));
 ```
 
-Ausência de registro, suspensão, revogação e expiração **negam acesso**.
-Não conceder privilégio automático a administrador, usuário que tenha Patreon,
-membro de Community nem artista cadastrado no módulo comercial.
+O valor `expires_at=NULL` em PILOT significa Pro vitalício, **não** uma
+assinatura temporária sem prazo conhecido. A administração pode revogar
+explicitamente o acesso por motivos legítimos, com auditoria, mas o sistema
+não expira nem rebaixa esse plano automaticamente.
 
-- `source_kind=PAID`: alimentado futuramente por integração de cobrança
-  verificada no servidor (sem confiar em retorno do browser).
-- `source_kind=PILOT`: assinatura de cortesia, com validade finita, emitida
-  apenas por um fluxo administrativo autorizado e auditado.
-- `status=ACTIVE`: acesso vigente apenas dentro do intervalo temporal;
-  **cobrança cancelada sem perda imediata do período pago** pode continuar ativa
-  até `expires_at`; a renovação da cobrança não está neste escopo.
-- `creator_studio_subscription_events`: histórico append-only de concessões,
-  renovações e revogações. A escrita da assinatura e do evento deve ocorrer
-  na mesma transação; não provisionar por DML manual em produção.
-- Não armazenar token de cobrança, dados bancários, identificadores de cartão
-  nem segredos nesta tabela. O provedor/checkout será uma decisão futura.
-- Para piloto, a API deve fornecer mecanismo **owner-only** de concessão com
-  expiração e auditoria, antes de convidar usuários; esta migration não concede
-  assinaturas a ninguém.
+`creator_studio_subscription_events` é a trilha append-only; concessão,
+revogação ou alteração de plano e evento devem ser persistidos na **mesma transação**.
+Não confiar em dados de cobrança informados pelo navegador; integração futura
+precisa validar webhook e idempotência antes de alterar uma assinatura.
 
-Nota: o termo *assinatura ativa* aqui se refere à autorização efetiva de
-uso do produto; cobranças recorrentes e catálogo de planos são domínios
-distintos ainda não implementados.
+**Ainda não há preços, checkout, cobrança recorrente ou mapeamento definitivo de
+funcionalidades Free/Pro.** Não criar cortes artificiais sem validar o MVP. A
+API pode exigir `tier=PRO` em endpoints premium futuros, mas todos os
+endpoints privados exigem ao menos `ACTIVE` e entrada autorizada.
 
-## Estrutura do Studio
+## Domínio de commissions
 
-- `creator_studio_stage_definitions`: nomes de etapas reutilizáveis para
-  agrupamento entre diferentes processos do mesmo artista.
-- `creator_studio_workflows`/`creator_studio_workflow_steps`: modelos de
-  etapas. Cada artista pode ter até um padrão.
-- `creator_studio_art_types`: tipos de trabalho, com associação **opcional**
-  ao fluxo específico.
-- `creator_studio_commissions`: pedido privado e estado operacional
-  independente da etapa, com `requested_on` (data real do pedido) distinto
-  de `created_at` (registro no sistema). Índice para fila cronológica.
-- `creator_studio_commission_steps`: **cópia** das etapas escolhidas na
-  criação do pedido; edição do modelo não retroage. `stage_definition_id`
-  é opcional e pode conectar semanticamente a etapa a outras commissions.
-- `creator_studio_reference_links`: apenas URLs. Sem upload no R2.
+- `creator_studio_stage_definitions`: rótulos reutilizáveis de etapas,
+  permitindo agrupar “Sketch” entre fluxos distintos do mesmo artista.
+- `creator_studio_workflows` / `creator_studio_workflow_steps`: modelos
+  reutilizáveis de etapas. Até um padrão por artista.
+- `creator_studio_art_types`: tipo de arte opcional, associado ou não a workflow.
+- `creator_studio_commissions`: cliente, pedido, descrição, anotações, data
+  **real** de solicitação `requested_on`, diferente de `created_at` de
+  cadastro, prazo opcional e status separado da etapa atual.
+- `creator_studio_commission_steps`: cópia das etapas no momento da criação
+  da commission; editar o modelo não altera trabalhos iniciados.
+- `creator_studio_reference_links`: URLs e rótulos, sem R2 e sem anexos no MVP.
 
-FKs compostas por `(owner_user_id, id)` previnem associações entre
-objetos de **artistas diferentes** (tipo de arte, fluxo e etapas). A API
-precisa ainda aplicar ownership em todas as consultas, operações e alterações,
-com parâmetros derivados do usuário autenticado — nunca de `user_id` enviado
-pelo cliente.
+Status operacional e etapa de produção são distintos: pausar uma arte não
+faz com que o artista perca a informação de qual etapa estava executando.
+Concluídos saem da fila ativa, mas isso não equivale a excluir seus dados.
 
-## Notas de implementação
+## Segurança e critérios para implementação
 
-- Validar tamanho, URLs e dados recebidos na API antes de gravar. Evitar
-  HTML/JavaScript em URLs de referência; preferir HTTPS.
-- Concluir uma commission remove-a da fila **ativa**, mas não apaga a
-  informação; exclusão definitiva deve ser explícita e respeitar privacidade.
-- Registrar aprovação/correção como **nota manual do artista**, nunca como
-  confirmação autenticada do cliente.
-- A API deve negar leitura e escrita a assinantes expirados; futura política
-  de exportação de dados após expiração precisa de decisão específica.
-- Cuidado com a migração de contas consolidadas: rejeitar login de
-  `users.merged_into_user_id IS NOT NULL`.
-- Cliente, links e notas devem permanecer privados; recursos públicos de
-  vitrine ou fila pública requerem autorização e contratos separados.
-- Não iniciar a API com `ddl-auto=create/update` e não executar Flyway
-  nela; migrações somente aqui.
+- Identidade canônica derivada do token autenticado, **não** de `user_id` enviado
+  pelo cliente. Rejeitar contas mescladas (`merged_into_user_id IS NOT NULL`).
+- Não expor clientes, notas, URLs e etapas por endpoints públicos ou de Community.
+- Toda operação de Studio checa autorização e tier na API, não somente no Front.
+- Concessão Free / Pro vitalício apenas pelo responsável autorizado; nunca
+  tornar endpoint de concessão público ou conceder automaticamente.
+- Datas no banco em UTC; tratar data civil de pedido como `DATE`, independente
+  de timezone. Testar intervalo de início/vencimento com limites exatos.
+- Sem arquivos no R2 inicialmente. Referências por link com esquema
+  `https://`, validações e limites de tamanho na API.
+- Não reaproveitar `commerce_artist_profiles`; esse dado pertence à
+  operação comercial exclusiva da BraFurries.
+- A política de exportação dos próprios dados em situação de vencimento /
+  revogação precisa ser definida antes da cobrança real.
 
-## Ordem de rollout (ainda não autorizada)
+## Validação/rollout
 
-1. Revisar diff e executar CI / validação em MariaDB descartável.
-2. Backup e preflight manual de schema MariaDB de produção.
-3. Aplicar migration **somente após autorização explícita**.
-4. Publicar API com validação de assinatura em todos os endpoints.
-5. Publicar Front sem habilitar acesso indiscriminado.
-6. Conceder assinaturas PILOT temporárias, com auditoria, a usuários
-   específicos após consentimento.
-7. Observar erros, isolamento e uso real do MVP.
+1. Revisar diff de DDL, índices e restrições contra legado real.
+2. CI estática, Flyway e MariaDB descartável, smoke de isolamento/planos.
+3. API: testes focados para negação sem autorização, Free vs Pro, Pro
+   vitalício, expiração de BILLING, cross-user, revogação e auditoria.
+4. Front: estado de acesso e Studio para aprovados; nada de controle
+   de segurança baseado apenas em menu.
+5. Depois de aprovação: backup + preflight, migration manual no Database,
+   deploy API, deploy Front e concessões auditadas para piloto.
+6. Sem merge, DDL/DML em produção, checkout ou deploy automático nesta PR.
 
-Não houve execução de SQL nem deploy de produção ao criar esta PR.
+Relacionadas: BraFurries/BraFurries-API#12 e BraFurries/BraFurries-Front-End#3.
