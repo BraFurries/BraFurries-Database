@@ -321,6 +321,19 @@ def run() -> None:
         4, "global migration preserves all legacy guild rows for rollback",
     )
     assert_role_tool_tenant_and_concurrency()
+    # Creator Studio's nine tables are a mandatory part of this review branch,
+    # unlike the independent optional migrations listed below.
+    count(
+        "SELECT COUNT(*) FROM information_schema.TABLES "
+        "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_TYPE='BASE TABLE' "
+        "AND TABLE_NAME IN ("
+        "'creator_studio_subscriptions','creator_studio_subscription_events',"
+        "'creator_studio_stage_definitions','creator_studio_workflows',"
+        "'creator_studio_workflow_steps','creator_studio_art_types',"
+        "'creator_studio_commissions','creator_studio_commission_steps',"
+        "'creator_studio_reference_links')",
+        9, "Creator Studio's nine foundation tables exist",
+    )
     # Database #47 adds the shared OAuth proof table; #48 uses it but does not
     # recreate it. Both independent draft branches and the combined order must
     # keep the expected table count deterministic.
@@ -333,7 +346,7 @@ def run() -> None:
         "SELECT COUNT(*) FROM information_schema.TABLES "
         "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_TYPE='BASE TABLE' "
         "AND TABLE_NAME<>'flyway_schema_history'",
-        154 + discord_proof_tables + int(query(
+        163 + discord_proof_tables + int(query(
             "SELECT COUNT(*) FROM information_schema.TABLES "
             "WHERE TABLE_SCHEMA=DATABASE() "
             "AND TABLE_NAME='user_social_onboarding_challenges'"
