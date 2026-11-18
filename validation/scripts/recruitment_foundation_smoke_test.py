@@ -510,10 +510,16 @@ def run() -> None:
         "WHERE h.owner_user_id=c.owner_user_id AND h.commission_id=c.id AND h.active=1) "
         "AND EXISTS (SELECT 1 FROM creator_studio_retention_notices n "
         "WHERE n.owner_user_id=c.owner_user_id AND n.commission_id=c.id "
-        "AND n.completed_at=c.completed_at AND n.notice_kind='D30' AND n.status='SENT' AND n.sent_at IS NOT NULL) "
+        "AND n.completed_at=c.completed_at AND n.notice_kind='D30' AND n.status='SENT' "
+        "AND n.sent_at IS NOT NULL AND n.delivery_state='SERVER_ACCEPTED' "
+        "AND n.delivery_evidence_at IS NOT NULL AND n.delivery_provider IS NOT NULL "
+        "AND n.delivery_event_ref IS NOT NULL) "
         "AND EXISTS (SELECT 1 FROM creator_studio_retention_notices n "
         "WHERE n.owner_user_id=c.owner_user_id AND n.commission_id=c.id "
-        "AND n.completed_at=c.completed_at AND n.notice_kind='D7' AND n.status='SENT' AND n.sent_at IS NOT NULL)"
+        "AND n.completed_at=c.completed_at AND n.notice_kind='D7' AND n.status='SENT' "
+        "AND n.sent_at IS NOT NULL AND n.delivery_state='SERVER_ACCEPTED' "
+        "AND n.delivery_evidence_at IS NOT NULL AND n.delivery_provider IS NOT NULL "
+        "AND n.delivery_event_ref IS NOT NULL)"
     )
     count(purge_eligible,0,"no purge without both reminder records")
     execute(
@@ -522,7 +528,17 @@ def run() -> None:
         "SELECT owner_user_id,id,completed_at,'D7','SENT',UTC_TIMESTAMP(6) "
         "FROM creator_studio_commissions WHERE id=9960202"
     )
-    count(purge_eligible,1,"both reminder records allow completion-era purge")
+    count(purge_eligible,0,"two SMTP acknowledgements alone do not authorize deletion")
+    execute(
+        "UPDATE creator_studio_retention_notices SET "
+        "recipient_email='synthetic@example.invalid', "
+        "delivery_state='SERVER_ACCEPTED',delivery_provider='CI_SYNTHETIC', "
+        "delivery_event_ref=CONCAT('ci-synthetic-',notice_kind), "
+        "delivery_evidence_at=UTC_TIMESTAMP(6) "
+        "WHERE owner_user_id=99602 AND commission_id=9960202 "
+        "AND notice_kind IN ('D30','D7')"
+    )
+    count(purge_eligible,1,"both provider-confirmed reminders allow completion-era purge")
     count(
         "SELECT COUNT(*) FROM creator_studio_retention_notices "
         "WHERE owner_user_id=99602 AND commission_id=9960202 AND status='SENT'",
