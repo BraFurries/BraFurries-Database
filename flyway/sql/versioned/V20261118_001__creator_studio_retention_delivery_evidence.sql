@@ -18,6 +18,8 @@ ALTER TABLE creator_studio_retention_notices
     ADD CONSTRAINT ck_csrn_delivery_evidence
         CHECK (
             (delivery_state='SERVER_ACCEPTED'
+             AND recipient_email IS NOT NULL
+             AND recipient_email<>''
              AND delivery_provider IS NOT NULL
              AND delivery_provider<>''
              AND delivery_event_ref IS NOT NULL
