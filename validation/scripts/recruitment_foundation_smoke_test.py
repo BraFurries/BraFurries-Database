@@ -495,6 +495,71 @@ def run() -> None:
         "WHERE id=9960202 AND owner_user_id=99602"
     )
     count(expired, 1, "eligible commission after explicit re-completion")
+    # Completion epoch gives each artist ONE entry per 30/7 notice.
+    execute(
+        "INSERT INTO creator_studio_retention_notices "
+        "(owner_user_id,commission_id,completed_at,notice_kind,status,sent_at) "
+        "SELECT owner_user_id,id,completed_at,'D30','SENT',UTC_TIMESTAMP(6) "
+        "FROM creator_studio_commissions WHERE id=9960202"
+    )
+    execute(
+        "INSERT INTO creator_studio_retention_notices "
+        "(owner_user_id,commission_id,completed_at,notice_kind,status,sent_at) "
+        "SELECT owner_user_id,id,completed_at,'D7','SENT',UTC_TIMESTAMP(6) "
+        "FROM creator_studio_commissions WHERE id=9960202"
+    )
+    count(
+        "SELECT COUNT(*) FROM creator_studio_retention_notices "
+        "WHERE owner_user_id=99602 AND commission_id=9960202 AND status='SENT'",
+        2, "both reminder epochs recorded",
+    )
+    rejected(
+        "INSERT INTO creator_studio_retention_notices "
+        "(owner_user_id,commission_id,completed_at,notice_kind) "
+        "SELECT owner_user_id,id,completed_at,'D30' "
+        "FROM creator_studio_commissions WHERE id=9960202",
+        "same reminder for the same completion cannot duplicate", error_code=1062,
+    )
+    rejected(
+        "INSERT INTO creator_studio_retention_notices "
+        "(owner_user_id,commission_id,completed_at,notice_kind) "
+        "SELECT 99601,id,completed_at,'D30' "
+        "FROM creator_studio_commissions WHERE id=9960202",
+        "cross-artist notice is forbidden", error_code=1452,
+    )
+    execute(
+        "INSERT INTO creator_studio_retention_holds "
+        "(owner_user_id,commission_id,active,category,reason,"
+        "created_by_user_id,updated_by_user_id) "
+        "VALUES (99602,9960202,1,'DISPUTE','Legitimate hold',99603,99603)"
+    )
+    count(
+        "SELECT COUNT(*) FROM creator_studio_commissions c "
+        "WHERE c.id=9960202 AND NOT EXISTS "
+        "(SELECT 1 FROM creator_studio_retention_holds h "
+        "WHERE h.owner_user_id=c.owner_user_id AND h.commission_id=c.id "
+        "AND h.active=1)",
+        0, "active legal hold blocks automatic retention purge",
+    )
+    execute(
+        "INSERT INTO creator_studio_retention_hold_events "
+        "(owner_user_id,commission_id,actor_user_id,action,category) "
+        "VALUES (99602,9960202,99603,'PLACED','DISPUTE')"
+    )
+    execute(
+        "UPDATE creator_studio_retention_holds SET active=0,updated_by_user_id=99603 "
+        "WHERE owner_user_id=99602 AND commission_id=9960202"
+    )
+    execute(
+        "INSERT INTO creator_studio_retention_hold_events "
+        "(owner_user_id,commission_id,actor_user_id,action,category) "
+        "VALUES (99602,9960202,99603,'RELEASED','DISPUTE')"
+    )
+    count(
+        "SELECT COUNT(*) FROM creator_studio_retention_holds "
+        "WHERE owner_user_id=99602 AND commission_id=9960202 AND active=1",
+        0, "released hold no longer blocks retention",
+    )
     # Match the API worker's FK-safe order, verifying that unrelated jobs survive.
     execute(
         "DELETE FROM creator_studio_activity "
@@ -507,6 +572,14 @@ def run() -> None:
     execute(
         "DELETE FROM creator_studio_commission_steps "
         "WHERE owner_user_id=99602 AND commission_id=9960202"
+    )
+    execute(
+        "DELETE FROM creator_studio_retention_notices "
+        "WHERE owner_user_id=99602 AND commission_id=9960202"
+    )
+    execute(
+        "DELETE FROM creator_studio_retention_holds "
+        "WHERE owner_user_id=99602 AND commission_id=9960202 AND active=0"
     )
     execute(
         "DELETE FROM creator_studio_commissions "
@@ -523,6 +596,11 @@ def run() -> None:
         "WHERE user_id=99602 AND source_kind='PILOT' AND expires_at IS NULL",
         1, "lifetime pilot Pro remains after commission purge",
     )
+    count(
+        "SELECT COUNT(*) FROM creator_studio_retention_hold_events "
+        "WHERE owner_user_id=99602 AND commission_id=9960202",
+        2, "minimal hold audit remains after commission deletion",
+    )
     # Database #47 adds the shared OAuth proof table; #48 uses it but does not
     # recreate it. Both independent draft branches and the combined order must
     # keep the expected table count deterministic.
@@ -535,7 +613,7 @@ def run() -> None:
         "SELECT COUNT(*) FROM information_schema.TABLES "
         "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_TYPE='BASE TABLE' "
         "AND TABLE_NAME<>'flyway_schema_history'",
-        164 + discord_proof_tables + int(query(
+        167 + discord_proof_tables + int(query(
             "SELECT COUNT(*) FROM information_schema.TABLES "
             "WHERE TABLE_SCHEMA=DATABASE() "
             "AND TABLE_NAME='user_social_onboarding_challenges'"
