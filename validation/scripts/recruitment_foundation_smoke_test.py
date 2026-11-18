@@ -451,6 +451,78 @@ def run() -> None:
         "artist cannot attach reference links to another commission",
         error_code=1452,
     )
+    # Retention scenarios use disposable MariaDB ONLY. NEVER production DML.
+    execute(
+        "INSERT INTO creator_studio_commissions "
+        "(id,owner_user_id,title,client_name,requested_on,status,completed_at) VALUES "
+        "(9960202,99602,'Old completed','Archived client',CURRENT_DATE(),'COMPLETED',"
+        " DATE_SUB(UTC_TIMESTAMP(6),INTERVAL 2 YEAR)),"
+        "(9960203,99602,'Paused old','Active client',CURRENT_DATE(),'PAUSED',NULL),"
+        "(9960204,99602,'Just completed','Current client',CURRENT_DATE(),'COMPLETED',UTC_TIMESTAMP(6))"
+    )
+    execute(
+        "INSERT INTO creator_studio_commission_steps "
+        "(owner_user_id,commission_id,name,position,status) "
+        "VALUES (99602,9960202,'Sketch',0,'DONE')"
+    )
+    execute(
+        "INSERT INTO creator_studio_reference_links "
+        "(owner_user_id,commission_id,label,url,position) "
+        "VALUES (99602,9960202,'Reference','https://example.invalid/old',0)"
+    )
+    execute(
+        "INSERT INTO creator_studio_activity "
+        "(owner_user_id,commission_id,event_kind,description,occurred_on) "
+        "VALUES (99602,9960202,'NOTE','Historical revision',CURRENT_DATE())"
+    )
+    expired = (
+        "SELECT COUNT(*) FROM creator_studio_commissions "
+        "WHERE owner_user_id=99602 AND status='COMPLETED' "
+        "AND completed_at IS NOT NULL "
+        "AND completed_at<=DATE_SUB(UTC_TIMESTAMP(6),INTERVAL 364 DAY) "
+        "AND DATE_ADD(completed_at,INTERVAL 1 YEAR)<=UTC_TIMESTAMP(6)"
+    )
+    count(expired, 1, "only old completed commission qualifies for retention")
+    # Reopening must fully reset the retention clock. The worker rechecks under lock.
+    execute(
+        "UPDATE creator_studio_commissions SET status='IN_PROGRESS',completed_at=NULL "
+        "WHERE id=9960202 AND owner_user_id=99602"
+    )
+    count(expired, 0, "reopened commission cannot be expired")
+    execute(
+        "UPDATE creator_studio_commissions SET status='COMPLETED',"
+        "completed_at=DATE_SUB(UTC_TIMESTAMP(6),INTERVAL 2 YEAR) "
+        "WHERE id=9960202 AND owner_user_id=99602"
+    )
+    count(expired, 1, "eligible commission after explicit re-completion")
+    # Match the API worker's FK-safe order, verifying that unrelated jobs survive.
+    execute(
+        "DELETE FROM creator_studio_activity "
+        "WHERE owner_user_id=99602 AND commission_id=9960202"
+    )
+    execute(
+        "DELETE FROM creator_studio_reference_links "
+        "WHERE owner_user_id=99602 AND commission_id=9960202"
+    )
+    execute(
+        "DELETE FROM creator_studio_commission_steps "
+        "WHERE owner_user_id=99602 AND commission_id=9960202"
+    )
+    execute(
+        "DELETE FROM creator_studio_commissions "
+        "WHERE id=9960202 AND owner_user_id=99602 AND status='COMPLETED' "
+        "AND DATE_ADD(completed_at,INTERVAL 1 YEAR)<=UTC_TIMESTAMP(6)"
+    )
+    count(
+        "SELECT COUNT(*) FROM creator_studio_commissions "
+        "WHERE owner_user_id=99602 AND id IN (9960203,9960204)",
+        2, "pauses and recent completions survive retention",
+    )
+    count(
+        "SELECT COUNT(*) FROM creator_studio_subscriptions "
+        "WHERE user_id=99602 AND source_kind='PILOT' AND expires_at IS NULL",
+        1, "lifetime pilot Pro remains after commission purge",
+    )
     # Database #47 adds the shared OAuth proof table; #48 uses it but does not
     # recreate it. Both independent draft branches and the combined order must
     # keep the expected table count deterministic.
