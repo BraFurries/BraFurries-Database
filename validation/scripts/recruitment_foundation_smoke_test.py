@@ -340,6 +340,15 @@ def run() -> None:
         "AND TABLE_NAME='creator_studio_activity'",
         1, "Creator Studio private activity timeline exists",
     )
+    count(
+        "SELECT COUNT(*) FROM information_schema.STATISTICS "
+        "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='creator_studio_commissions' "
+        "AND INDEX_NAME='idx_csc_retention' "
+        "AND ((SEQ_IN_INDEX=1 AND COLUMN_NAME='status') "
+        "OR (SEQ_IN_INDEX=2 AND COLUMN_NAME='completed_at') "
+        "OR (SEQ_IN_INDEX=3 AND COLUMN_NAME='id'))",
+        3, "Creator Studio retention index has status/completed_at/id order",
+    )
     # Synthetic Creator Studio entitlement and cross-artist isolation checks.
     execute(
         "INSERT INTO users (id,display_name) VALUES "
