@@ -34,6 +34,35 @@
 - Reabrir a commission cancela elegibilidade imediatamente; notificações antigas permanecem vinculadas ao `completed_at` anterior e **não** legitimam exclusão de nova conclusão.
 - A exclusão continua exigindo `CREATOR_STUDIO_RETENTION_PURGE_ENABLED=true` **E** `CREATOR_STUDIO_RETENTION_NOTICES_READY=true`, ambas false por padrão. Habilitar apenas depois de auditar a política, opt-in operacional e prova de entrega.
 
+## Evidência do provedor transacional (fase de integração, desativada)
+
+- Migration `V20261118_001__creator_studio_retention_delivery_evidence.sql` adiciona
+  estado independente ao ledger. Todo aviso histórico começa em `UNCONFIRMED`:
+  o `SENT` anterior significa apenas aceite SMTP.
+- A API precisa verificar tanto `SENT` quanto `SERVER_ACCEPTED`, com provedor,
+  evento e timestamp, em cada aviso D30 e D7 da **conclusão atual**. `BOUNCED` ou
+  `COMPLAINT` impedem a exclusão, inclusive se o servidor já havia aceitado
+  um envio antes de registrar uma falha posterior.
+- Caminho escolhido: **Zoho CPaaS** (não confundir com SMTP comum Zoho Mail).
+  Na configuração do Agent, ativar os eventos Delivered, Soft/Hard Bounce e
+  Feedback Loop com Authentication Key. O webhook da API verifica assinatura
+  `producer-signature` HMAC-SHA256 sobre o corpo bruto e janela curta de tempo.
+- Correlacionar exclusivamente por `X-TM-CLIENT-REF=cs-ret-<ledger.id>` no e-mail
+  enviado via SMTP do CPaaS; validar Agent e e-mail destinatário verificado na
+  API. Nunca usar nomes, IDs de clientes ou dados de commissions nesse header.
+- Flags `CREATOR_STUDIO_RETENTION_CPAAS_SMTP` e
+  `CREATOR_STUDIO_RETENTION_CPAAS_WEBHOOK_ENABLED` continuam **false** por
+  padrão; credenciais e chave HMAC somente em configuração protegida.
+  `CREATOR_STUDIO_RETENTION_FROM_ADDRESS` deve ser remetente aprovado para
+  evitar usar `emailapikey` como endereço de origem.
+- Um evento `Delivered` significa aceito pelo **servidor do destinatário**,
+  não necessariamente pela caixa de entrada, e não demonstra abertura/leitura.
+  Não publicar alegações de recebimento garantido.
+- Testar em staging: webhook válido/tampered/replay/atrasado, mudança de conta,
+  conclusão reaberta, bounce posterior, correlação de e-mail, duplicidade
+  de webhook e impacto da revogação de assinatura. Ainda não há prova real
+  de entrega nem autorização para habilitar limpeza em produção.
+
 ### Consulta de auditoria em ambiente controlado
 
 ```sql
