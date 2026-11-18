@@ -1,6 +1,6 @@
 # Creator Studio Pro — produção: plano de ativação controlada (18/11/2026)
 
-**Estado: NÃO EXECUTADO.** Este arquivo registra pré-condições e operações necessárias, mas **não** demonstra qualquer DDL aplicada, backup ou deploy em produção. O usuário autorizou testar a V1 na produção; isso não equivale a uma autorização para habilitar expurgo, notificações automáticas ou envio real de e-mails.
+**Plano histórico, executado pelo operador quanto à aplicação de schema e seguido dos deploys API/Front em 18/11/2026.** Consulte o [registro com as evidências observadas](2026-11-18-creator-studio-production.md). **Não reexecutar estas migrations em produção**: o texto abaixo documenta o plano pré-implantação, e não uma autorização de repetição. O rollout da V1 não autoriza habilitar expurgo, notificações automáticas ou e-mails reais.
 
 ## Autoridade e dependências
 
