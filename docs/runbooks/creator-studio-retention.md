@@ -48,8 +48,12 @@
   Feedback Loop com Authentication Key. O webhook da API verifica assinatura
   `producer-signature` HMAC-SHA256 sobre o corpo bruto e janela curta de tempo.
 - Correlacionar exclusivamente por `X-TM-CLIENT-REF=cs-ret-<ledger.id>` no e-mail
-  enviado via SMTP do CPaaS; validar Agent e e-mail destinatário verificado na
-  API. Nunca usar nomes, IDs de clientes ou dados de commissions nesse header.
+  enviado via SMTP do CPaaS; validar Agent e o endereço de destinatário
+  `recipient_email` capturado **atomicamente na claim**, enquanto a conta
+  possuía e-mail verificado. Assim, bounces posteriores continuam rastreáveis
+  mesmo após o usuário trocar o e-mail da conta. O valor é dado pessoal privado:
+  não retornar ao Front ou registrar nos logs. Nunca usar nomes, IDs de clientes
+  ou dados de commissions nesse header.
 - Flags `CREATOR_STUDIO_RETENTION_CPAAS_SMTP` e
   `CREATOR_STUDIO_RETENTION_CPAAS_WEBHOOK_ENABLED` continuam **false** por
   padrão; credenciais e chave HMAC somente em configuração protegida.
