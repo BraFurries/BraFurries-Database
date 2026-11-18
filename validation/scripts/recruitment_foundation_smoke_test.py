@@ -577,6 +577,26 @@ def run() -> None:
         0, "released hold no longer blocks retention",
     )
     count(purge_eligible,1,"released hold permits a fully notified record")
+    execute(
+        "UPDATE creator_studio_commissions SET status='IN_PROGRESS',completed_at=NULL "
+        "WHERE owner_user_id=99602 AND id=9960202"
+    )
+    count(purge_eligible,0,"reopening invalidates both recorded reminders")
+    execute(
+        "UPDATE creator_studio_commissions SET status='COMPLETED',"
+        "completed_at=DATE_SUB(UTC_TIMESTAMP(6),INTERVAL 2 YEAR) "
+        "WHERE owner_user_id=99602 AND id=9960202"
+    )
+    count(purge_eligible,0,"re-completion needs NEW reminders, old accepted notices do not count")
+    execute(
+        "UPDATE creator_studio_commissions c "
+        "JOIN creator_studio_retention_notices n "
+        "ON n.commission_id=c.id AND n.owner_user_id=c.owner_user_id "
+        "AND n.notice_kind='D30' "
+        "SET c.completed_at=n.completed_at "
+        "WHERE c.owner_user_id=99602 AND c.id=9960202"
+    )
+    count(purge_eligible,1,"restored completion epoch matches both accepted notices")
     # Match the API worker's FK-safe order, verifying that unrelated jobs survive.
     execute(
         "DELETE FROM creator_studio_activity "
