@@ -510,10 +510,10 @@ def run() -> None:
         "WHERE h.owner_user_id=c.owner_user_id AND h.commission_id=c.id AND h.active=1) "
         "AND EXISTS (SELECT 1 FROM creator_studio_retention_notices n "
         "WHERE n.owner_user_id=c.owner_user_id AND n.commission_id=c.id "
-        "AND n.completed_at=c.completed_at AND n.notice_kind='D30' AND n.status='SENT') "
+        "AND n.completed_at=c.completed_at AND n.notice_kind='D30' AND n.status='SENT' AND n.sent_at IS NOT NULL) "
         "AND EXISTS (SELECT 1 FROM creator_studio_retention_notices n "
         "WHERE n.owner_user_id=c.owner_user_id AND n.commission_id=c.id "
-        "AND n.completed_at=c.completed_at AND n.notice_kind='D7' AND n.status='SENT')"
+        "AND n.completed_at=c.completed_at AND n.notice_kind='D7' AND n.status='SENT' AND n.sent_at IS NOT NULL)"
     )
     count(purge_eligible,0,"no purge without both reminder records")
     execute(
