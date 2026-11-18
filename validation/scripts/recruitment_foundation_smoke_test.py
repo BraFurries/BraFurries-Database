@@ -502,12 +502,27 @@ def run() -> None:
         "SELECT owner_user_id,id,completed_at,'D30','SENT',UTC_TIMESTAMP(6) "
         "FROM creator_studio_commissions WHERE id=9960202"
     )
+    purge_eligible = (
+        "SELECT COUNT(*) FROM creator_studio_commissions c "
+        "WHERE c.id=9960202 AND c.status='COMPLETED' "
+        "AND DATE_ADD(c.completed_at,INTERVAL 1 YEAR)<=UTC_TIMESTAMP(6) "
+        "AND NOT EXISTS (SELECT 1 FROM creator_studio_retention_holds h "
+        "WHERE h.owner_user_id=c.owner_user_id AND h.commission_id=c.id AND h.active=1) "
+        "AND EXISTS (SELECT 1 FROM creator_studio_retention_notices n "
+        "WHERE n.owner_user_id=c.owner_user_id AND n.commission_id=c.id "
+        "AND n.completed_at=c.completed_at AND n.notice_kind='D30' AND n.status='SENT') "
+        "AND EXISTS (SELECT 1 FROM creator_studio_retention_notices n "
+        "WHERE n.owner_user_id=c.owner_user_id AND n.commission_id=c.id "
+        "AND n.completed_at=c.completed_at AND n.notice_kind='D7' AND n.status='SENT')"
+    )
+    count(purge_eligible,0,"no purge without both reminder records")
     execute(
         "INSERT INTO creator_studio_retention_notices "
         "(owner_user_id,commission_id,completed_at,notice_kind,status,sent_at) "
         "SELECT owner_user_id,id,completed_at,'D7','SENT',UTC_TIMESTAMP(6) "
         "FROM creator_studio_commissions WHERE id=9960202"
     )
+    count(purge_eligible,1,"both reminder records allow completion-era purge")
     count(
         "SELECT COUNT(*) FROM creator_studio_retention_notices "
         "WHERE owner_user_id=99602 AND commission_id=9960202 AND status='SENT'",
@@ -541,6 +556,7 @@ def run() -> None:
         "AND h.active=1)",
         0, "active legal hold blocks automatic retention purge",
     )
+    count(purge_eligible,0,"active hold blocks a fully notified record")
     execute(
         "INSERT INTO creator_studio_retention_hold_events "
         "(owner_user_id,commission_id,actor_user_id,action,category) "
@@ -560,6 +576,7 @@ def run() -> None:
         "WHERE owner_user_id=99602 AND commission_id=9960202 AND active=1",
         0, "released hold no longer blocks retention",
     )
+    count(purge_eligible,1,"released hold permits a fully notified record")
     # Match the API worker's FK-safe order, verifying that unrelated jobs survive.
     execute(
         "DELETE FROM creator_studio_activity "
