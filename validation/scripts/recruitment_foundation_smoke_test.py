@@ -654,6 +654,41 @@ def run() -> None:
         "WHERE owner_user_id=99602 AND commission_id=9960202",
         2, "minimal hold audit remains after commission deletion",
     )
+    # Platform-wide library is readable for all invited Pro artists, but
+    # cannot reference their private commissions or workflow stage IDs.
+    count(
+        "SELECT COUNT(*) FROM information_schema.TABLES "
+        "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME IN "
+        "('creator_studio_global_workflows','creator_studio_global_workflow_steps')",
+        2, "platform global template schema exists",
+    )
+    count(
+        "SELECT COUNT(*) FROM creator_studio_global_workflows "
+        "WHERE name='Processo básico' AND active=1",
+        1, "starter global template is available without granting subscriptions",
+    )
+    count(
+        "SELECT COUNT(*) FROM creator_studio_global_workflow_steps s "
+        "JOIN creator_studio_global_workflows w ON w.id=s.workflow_id "
+        "WHERE w.name='Processo básico' AND s.position BETWEEN 0 AND 4",
+        5, "starter global workflow has five ordered stages",
+    )
+    rejected(
+        "INSERT INTO creator_studio_global_workflow_steps "
+        "(workflow_id,name,position) VALUES (99999999,'Foreign',0)",
+        "global workflow FK prevents unattached steps", error_code=1452,
+    )
+    rejected(
+        "INSERT INTO creator_studio_global_workflow_steps "
+        "(workflow_id,name,position) "
+        "SELECT id,'Duplicated position',0 "
+        "FROM creator_studio_global_workflows WHERE name='Processo básico'",
+        "global workflow prevents duplicate step position", error_code=1062,
+    )
+    count(
+        "SELECT COUNT(*) FROM creator_studio_subscriptions WHERE user_id=99603",
+        0, "seeded global template never grants access",
+    )
     # Database #47 adds the shared OAuth proof table; #48 uses it but does not
     # recreate it. Both independent draft branches and the combined order must
     # keep the expected table count deterministic.
@@ -666,7 +701,7 @@ def run() -> None:
         "SELECT COUNT(*) FROM information_schema.TABLES "
         "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_TYPE='BASE TABLE' "
         "AND TABLE_NAME<>'flyway_schema_history'",
-        167 + discord_proof_tables + int(query(
+        169 + discord_proof_tables + int(query(
             "SELECT COUNT(*) FROM information_schema.TABLES "
             "WHERE TABLE_SCHEMA=DATABASE() "
             "AND TABLE_NAME='user_social_onboarding_challenges'"
