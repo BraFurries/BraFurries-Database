@@ -47,6 +47,10 @@
   Na configuração do Agent, ativar os eventos Delivered, Soft/Hard Bounce e
   Feedback Loop com Authentication Key. O webhook da API verifica assinatura
   `producer-signature` HMAC-SHA256 sobre o corpo bruto e janela curta de tempo.
+  O payload oficial do CPaaS inclui `event_name` e `event_message` como
+  **arrays**; o parser restringe-se a 1 evento / 1 mensagem por callback e
+  ignora lotes ambíguos até que haja contrato explícito de processamento em lote.
+  Exige também `email_info.is_smtp_trigger=true`.
 - Correlacionar exclusivamente por `X-TM-CLIENT-REF=cs-ret-<ledger.id>` no e-mail
   enviado via SMTP do CPaaS; validar Agent e o endereço de destinatário
   `recipient_email` capturado **atomicamente na claim**, enquanto a conta
