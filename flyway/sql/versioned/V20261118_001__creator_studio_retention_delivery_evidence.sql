@@ -4,6 +4,10 @@
 -- Existing notices stay UNCONFIRMED; no data backfill or DELETE is performed.
 -- A future authenticated provider adapter must be the only writer of evidence.
 ALTER TABLE creator_studio_retention_notices
+    -- Exact address captured atomically when claiming the notification; only
+    -- locally verified accounts can be claimed. Needed to correlate bounce
+    -- after the artist changes their account e-mail. Never expose to Front.
+    ADD COLUMN recipient_email VARCHAR(254) NULL,
     ADD COLUMN delivery_state VARCHAR(16) NOT NULL DEFAULT 'UNCONFIRMED',
     ADD COLUMN delivery_provider VARCHAR(32) NULL,
     ADD COLUMN delivery_event_ref VARCHAR(190) NULL,
