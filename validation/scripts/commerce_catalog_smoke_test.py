@@ -192,6 +192,31 @@ def validate_catalog() -> None:
     """)
     require_equal(query("SELECT COUNT(*) FROM commerce_artwork_files WHERE id=92001 AND status='ARCHIVED'"),
                   "1","archived file metadata remains auditable")
+    expect_sql_failure("UPDATE commerce_artwork_files SET is_preview=1 WHERE id=92001",
+                       "archived source cannot be a preview")
+    query("""
+        INSERT INTO commerce_artwork_files
+            (id,artwork_id,kind,original_name,extension,media_type,
+             storage_key,sha256,size_bytes,uploaded_by_user_id)
+        VALUES (92002,92001,'EXPORT','preview.png','png','image/png',
+                'commerce/artworks/92001/preview.png',REPEAT('a',64),1000,92001),
+               (92003,92001,'REFERENCE','preview.jpg','jpg','image/jpeg',
+                'commerce/artworks/92001/preview.jpg',REPEAT('b',64),1000,92001)
+    """)
+    require_equal(query("SELECT COUNT(*) FROM commerce_artwork_files WHERE artwork_id=92001 AND is_preview=1"),
+                  "0","existing and newly uploaded files have no preview by default")
+    query("UPDATE commerce_artwork_files SET is_preview=1 WHERE id=92002")
+    expect_sql_failure("UPDATE commerce_artwork_files SET is_preview=1 WHERE id=92003",
+                       "only one preview per artwork")
+    expect_sql_failure("""
+        UPDATE commerce_artwork_files SET status='ARCHIVED',archived_by_user_id=92001,
+            archived_at=CURRENT_TIMESTAMP(6) WHERE id=92002
+    ""","archiving must clear selected preview")
+    query("UPDATE commerce_artwork_files SET is_preview=0 WHERE id=92002")
+    query("UPDATE commerce_artwork_files SET is_preview=1 WHERE id=92003")
+    require_equal(query("SELECT id FROM commerce_artwork_files WHERE preview_artwork_id=92001"),
+                  "92003","selection can be replaced")
+    query("DELETE FROM commerce_artwork_files WHERE id IN (92002,92003)")
     # Generated commercial documents are not active agreements. Legacy signed
     # contracts remain intact, while drafts are isolated by artwork, version
     # snapshot, private checksum and explicit state transitions.
