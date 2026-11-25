@@ -216,6 +216,28 @@ def validate_catalog() -> None:
     query("UPDATE commerce_artwork_files SET is_preview=1 WHERE id=92003")
     require_equal(query("SELECT id FROM commerce_artwork_files WHERE preview_artwork_id=92001"),
                   "92003","selection can be replaced")
+    query("UPDATE commerce_artwork_files SET is_preview=0 WHERE id=92003")
+    query("UPDATE commerce_artwork_files SET size_bytes=6010000 WHERE id=92002")
+    expect_sql_failure("UPDATE commerce_artwork_files SET is_preview=1 WHERE id=92002",
+                       "large original requires a generated thumbnail")
+    query("""
+        UPDATE commerce_artwork_files SET is_preview=1,
+            preview_storage_key='commerce/artworks/92001/previews/92002/00000000-0000-4000-8000-000000000000.webp',
+            preview_sha256=REPEAT('c',64), preview_size_bytes=12000,
+            preview_width=398, preview_height=512, preview_generated_at=CURRENT_TIMESTAMP(6)
+        WHERE id=92002
+    """)
+    require_equal(query("SELECT id FROM commerce_artwork_files WHERE preview_artwork_id=92001"),
+                  "92002","large original with bounded WebP derivative is selectable")
+    expect_sql_failure("UPDATE commerce_artwork_files SET preview_width=513 WHERE id=92002",
+                       "thumbnail dimensions are bounded")
+    expect_sql_failure("UPDATE commerce_artwork_files SET is_preview=0 WHERE id=92002",
+                       "removing selection must clear derivative metadata")
+    query("""
+        UPDATE commerce_artwork_files SET is_preview=0,preview_storage_key=NULL,
+            preview_sha256=NULL,preview_size_bytes=NULL,preview_width=NULL,
+            preview_height=NULL,preview_generated_at=NULL WHERE id=92002
+    """)
     query("DELETE FROM commerce_artwork_files WHERE id IN (92002,92003)")
     # Generated commercial documents are not active agreements. Legacy signed
     # contracts remain intact, while drafts are isolated by artwork, version
