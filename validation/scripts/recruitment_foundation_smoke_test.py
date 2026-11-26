@@ -746,7 +746,13 @@ def run() -> None:
             "SELECT COUNT(*) FROM information_schema.TABLES "
             "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME IN "
             "('guild_role_tool_operations','guild_role_tool_audit')"
-        )), "schema count includes OAuth, onboarding, artists, revisions, Coddy admin, analytics, global blacklist and role tools",
+        )) + 4, "schema count includes OAuth, onboarding, artists, revisions, Coddy admin, analytics, global blacklist, role tools and product variants",
+    )
+    count(
+        "SELECT COUNT(*) FROM information_schema.TABLES "
+        "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME IN "
+        "('commerce_product_attributes','commerce_product_attribute_values','commerce_product_variants','commerce_product_variant_values')",
+        4, "canonical merchandise variant tables exist",
     )
     count(
         "SELECT COUNT(*) FROM information_schema.TABLES "
