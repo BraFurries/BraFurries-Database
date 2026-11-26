@@ -17,7 +17,7 @@ ALTER TABLE commerce_orders
     );
 
 -- Preserve pre-migration readiness while rejecting new readiness without a request.
-DELIMITER $
+DELIMITER $$
 CREATE TRIGGER trg_co_ready_requires_production
 BEFORE UPDATE ON commerce_orders
 FOR EACH ROW
@@ -26,5 +26,5 @@ BEGIN
         AND (OLD.status<>'IN_PRODUCTION' OR NEW.production_requested_at IS NULL) THEN
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Encaminhe a encomenda para produção antes de marcar pronta';
     END IF;
-END$
+END$$
 DELIMITER ;
