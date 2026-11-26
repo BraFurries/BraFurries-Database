@@ -325,6 +325,84 @@ def verify() -> None:
     """)
     require_equal(query("SELECT COUNT(*) FROM commerce_sales WHERE id=97001"),
                   "0","delivery cannot silently create a financial sale")
+    # Canonical variants: legacy rows stay untouched; new rows use scoped IDs.
+    query("""
+        INSERT INTO commerce_products(id,sku,name,suggested_price,created_by_user_id)
+        VALUES (95002,'FINANCE-95002','Other product',60.00,95001)
+    """)
+    query("""
+        INSERT INTO commerce_product_attributes(id,product_id,name)
+        VALUES (95001,95001,'Tamanho'),(95002,95002,'Cor')
+    """)
+    query("""
+        INSERT INTO commerce_product_attribute_values(id,product_id,attribute_id,label)
+        VALUES (95001,95001,95001,'G'),(95002,95001,95001,'M'),(95003,95002,95002,'Preta')
+    """)
+    query("""
+        INSERT INTO commerce_product_variants(id,product_id,combination_sha256,label,created_by_user_id)
+        VALUES (95001,95001,REPEAT('a',64),'Tamanho: G',95001),
+               (95002,95001,REPEAT('b',64),'Tamanho: M',95001),
+               (95003,95002,REPEAT('c',64),'Cor: Preta',95001)
+    """)
+    query("""
+        INSERT INTO commerce_product_variant_values(product_id,variant_id,attribute_id,value_id)
+        VALUES (95001,95001,95001,95001),(95001,95002,95001,95002),(95002,95003,95002,95003)
+    """)
+    expect_sql_failure("""
+        INSERT INTO commerce_product_variants(product_id,combination_sha256,label,created_by_user_id)
+        VALUES (95001,REPEAT('a',64),'duplicate',95001)
+    ""","duplicate combination rejected")
+    expect_sql_failure("""
+        INSERT INTO commerce_product_variant_values(product_id,variant_id,attribute_id,value_id)
+        VALUES (95001,95001,95002,95003)
+    ""","variant values cannot cross product boundary")
+    query("""
+        INSERT INTO commerce_production_batches
+          (id,product_id,supplier_id,quantity,unit_cost,additional_cost,total_cost,
+           produced_on,created_by_user_id,variant_id,variant_label_snapshot)
+        VALUES (95002,95001,95001,5,25,0,125,'2026-11-03',95001,95001,'Tamanho: G')
+    """)
+    expect_sql_failure("""
+        UPDATE commerce_production_batches SET variant_id=95003 WHERE id=95002
+    ""","batch rejects another product's variant")
+    query("""
+        INSERT INTO commerce_orders(id,request_key,request_sha256,buyer_label,ordered_on,total_amount,created_by_user_id)
+        VALUES (97002,'55555555-5555-4555-8555-555555555555',REPEAT('e',64),'Variant order','2026-11-03',60,95001)
+    """)
+    expect_sql_failure("""
+        INSERT INTO commerce_order_items(order_id,product_id,item_label,quantity,unit_price_snapshot,line_amount,variant_id,variant_label_snapshot)
+        VALUES (97002,95001,'Mug',1,60,60,95003,'Cor: Preta')
+    ""","order rejects another product's variant")
+    expect_sql_failure("""
+        INSERT INTO commerce_order_items(order_id,item_label,quantity,unit_price_snapshot,line_amount,variant_id,variant_label_snapshot)
+        VALUES (97002,'Mug',1,60,60,95001,'Tamanho: G')
+    ""","custom item cannot reference catalog variant")
+    query("""
+        INSERT INTO commerce_order_items(order_id,product_id,item_label,quantity,unit_price_snapshot,line_amount,variant_id,variant_label_snapshot)
+        VALUES (97002,95001,'Mug',1,60,60,95001,'Tamanho: G')
+    """)
+    query("""
+        INSERT INTO commerce_sales(id,request_key,request_sha256,channel,sold_on,gross_amount,created_by_user_id)
+        VALUES (95002,'66666666-6666-4666-8666-666666666666',REPEAT('f',64),'DIRECT','2026-11-03',60,95001)
+    """)
+    expect_sql_failure("""
+        INSERT INTO commerce_sale_items(sale_id,product_id,production_batch_id,quantity,unit_price_snapshot,line_gross_amount,line_production_cost_snapshot,variant_id,variant_label_snapshot)
+        VALUES (95002,95001,95002,1,60,60,25,95002,'Tamanho: M')
+    ""","sale must use the lot's exact variant")
+    query("""
+        INSERT INTO commerce_sale_items(sale_id,product_id,production_batch_id,quantity,unit_price_snapshot,line_gross_amount,line_production_cost_snapshot,variant_id,variant_label_snapshot)
+        VALUES (95002,95001,95002,1,60,60,25,95001,'Tamanho: G')
+    """)
+    query("UPDATE commerce_production_batches SET sold_quantity=1 WHERE id=95002")
+    query("UPDATE commerce_product_variants SET active=0 WHERE id=95001")
+    expect_sql_failure("UPDATE commerce_production_batches SET variant_id=95002 WHERE id=95002",
+                       "historical sale freezes lot variant")
+    require_equal(query("SELECT variant_label_snapshot FROM commerce_sale_items WHERE sale_id=95002"),
+                  "Tamanho: G","historical sale retains variant snapshot")
+    require_equal(query("SELECT COUNT(*) FROM commerce_order_items WHERE order_id=97001 AND variant_id IS NULL AND size_label='GG'"),
+                  "1","legacy order classification preserved")
+    require_equal(query("SELECT quantity-sold_quantity FROM commerce_production_batches WHERE id=95002"),
+                  "4","variant stock remains a locked lot counter")
     print("PASS: finance ledger constraints, idempotent keys, royalty reversal, monthly uniqueness")
 
 def main() -> int:
