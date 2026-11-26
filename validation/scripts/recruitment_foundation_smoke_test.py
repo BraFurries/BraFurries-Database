@@ -746,7 +746,7 @@ def run() -> None:
             "SELECT COUNT(*) FROM information_schema.TABLES "
             "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME IN "
             "('guild_role_tool_operations','guild_role_tool_audit')"
-        )) + 5, "schema count includes OAuth, onboarding, artists, revisions, Coddy admin, analytics, global blacklist, role tools and product variants",
+        )) + 6, "schema count includes OAuth, onboarding, artists, revisions, Coddy admin, analytics, global blacklist, role tools, product variants and Drive folders",
     )
     count(
         "SELECT COUNT(*) FROM information_schema.TABLES "
@@ -758,6 +758,19 @@ def run() -> None:
         "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() "
         "AND TABLE_NAME IN ('platform_google_drive_connection','platform_google_drive_oauth_attempt','platform_google_drive_audit')",
         3, "institutional Drive connection and OAuth tables exist",
+    )
+    count(
+        "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() "
+        "AND TABLE_NAME='platform_google_drive_managed_folders'",
+        1, "managed institutional Drive folder registry exists",
+    )
+    count(
+        "SELECT COUNT(*) FROM platform_google_drive_managed_folders",
+        0, "migration creates no managed folders",
+    )
+    count(
+        "SELECT COUNT(*) FROM flyway_schema_history WHERE success=1 AND version='20261126.005'",
+        1, "managed Drive folder migration recorded once",
     )
     count(
         "SELECT COUNT(*) FROM platform_google_drive_connection",
