@@ -416,6 +416,38 @@ def verify() -> None:
                   "1","legacy order classification preserved")
     require_equal(query("SELECT quantity-sold_quantity FROM commerce_production_batches WHERE id=95002"),
                   "4","variant stock remains a locked lot counter")
+    query("""
+        INSERT INTO commerce_production_lot_groups(id,product_id,created_by_user_id)
+        VALUES (98001,95001,95001)
+    """)
+    query("""
+        INSERT INTO commerce_production_batches
+            (id,product_id,supplier_id,quantity,unit_cost,additional_cost,total_cost,produced_on,
+             created_by_user_id,variant_id,variant_label_snapshot,lot_group_id)
+        VALUES (98001,95001,95001,3,20,1,61,'2026-11-03',95001,95001,'Tamanho: G',98001),
+               (98002,95001,95001,7,25,2,177,'2026-11-03',95001,95002,'Tamanho: M',98001)
+    """)
+    expect_sql_failure("""
+        INSERT INTO commerce_production_batches
+            (product_id,supplier_id,quantity,unit_cost,additional_cost,total_cost,produced_on,
+             created_by_user_id,variant_id,variant_label_snapshot,lot_group_id)
+        VALUES (95001,95001,1,20,0,20,'2026-11-03',95001,95001,'Tamanho: G',98001)
+    ""","one stock line per variant within a lot")
+    expect_sql_failure("""
+        INSERT INTO commerce_production_batches
+            (product_id,supplier_id,quantity,unit_cost,additional_cost,total_cost,produced_on,
+             created_by_user_id,variant_id,variant_label_snapshot,lot_group_id)
+        VALUES (95002,95001,1,20,0,20,'2026-11-03',95001,95003,'Cor: Preta',98001)
+    ""","lot group cannot mix products")
+    expect_sql_failure("UPDATE commerce_production_batches SET lot_group_id=98001 WHERE id=95001",
+                       "unclassified legacy stock cannot enter classified group")
+    query("UPDATE commerce_production_batches SET sold_quantity=2 WHERE id=98001")
+    require_equal(query("SELECT SUM(quantity-sold_quantity) FROM commerce_production_batches WHERE lot_group_id=98001"),
+                  "8","mixed lot stock aggregates independently")
+    require_equal(query("SELECT quantity-sold_quantity FROM commerce_production_batches WHERE id=98002"),
+                  "7","selling one variant cannot consume another")
+    require_equal(query("SELECT COUNT(*) FROM commerce_production_batches WHERE id IN (95001,95002) AND lot_group_id IS NULL"),
+                  "2","legacy batch identities remain untouched")
     print("PASS: finance ledger constraints, idempotent keys, royalty reversal, monthly uniqueness")
 
 def main() -> int:
