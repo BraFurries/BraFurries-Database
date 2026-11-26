@@ -311,10 +311,23 @@ def verify() -> None:
     expect_sql_failure("""
         DELETE FROM commerce_order_payment_events WHERE id=97001
     ""","receipts cannot be erased from the audit history")
+    expect_sql_failure("""
+        UPDATE commerce_orders SET status='READY',ready_at=CURRENT_TIMESTAMP(6),
+            updated_by_user_id=95001 WHERE id=97001
+    ""","readiness requires previous production request")
+    expect_sql_failure("""
+        UPDATE commerce_orders SET status='IN_PRODUCTION' WHERE id=97001
+    ""","production status requires timestamp")
+    query("""
+        UPDATE commerce_orders SET status='IN_PRODUCTION',
+            production_requested_at=CURRENT_TIMESTAMP(6),updated_by_user_id=95001 WHERE id=97001
+    """)
     query("""
         UPDATE commerce_orders SET status='READY',ready_at=CURRENT_TIMESTAMP(6),
             updated_by_user_id=95001 WHERE id=97001
     """)
+    require_equal(query("SELECT COUNT(*) FROM commerce_orders WHERE id=97001 AND production_requested_at IS NOT NULL AND status='READY'"),
+                  "1","production timestamp retained when ready")
     expect_sql_failure("""
         UPDATE commerce_orders SET status='DELIVERED',delivered_on='2026-11-02',
             updated_by_user_id=95001 WHERE id=97001
