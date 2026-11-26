@@ -701,7 +701,7 @@ def run() -> None:
         "SELECT COUNT(*) FROM information_schema.TABLES "
         "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_TYPE='BASE TABLE' "
         "AND TABLE_NAME<>'flyway_schema_history'",
-        169 + discord_proof_tables + int(query(
+        172 + discord_proof_tables + int(query(
             "SELECT COUNT(*) FROM information_schema.TABLES "
             "WHERE TABLE_SCHEMA=DATABASE() "
             "AND TABLE_NAME='user_social_onboarding_challenges'"
@@ -755,7 +755,16 @@ def run() -> None:
         4, "canonical merchandise variant tables exist",
     )
     count(
-        "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=\'commerce_production_lot_groups\'",
+        "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() "
+        "AND TABLE_NAME IN ('platform_google_drive_connection','platform_google_drive_oauth_attempt','platform_google_drive_audit')",
+        3, "institutional Drive connection and OAuth tables exist",
+    )
+    count(
+        "SELECT COUNT(*) FROM platform_google_drive_connection",
+        0, "migration must not create an institutional credential",
+    )
+    count(
+        "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='commerce_production_lot_groups'",
         1, "mixed production lot group table exists",
     )
     count(
