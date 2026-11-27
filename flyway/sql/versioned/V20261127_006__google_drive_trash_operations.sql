@@ -20,7 +20,8 @@ CREATE TABLE platform_google_drive_trash_operations (
     restored_at DATETIME(6) NULL,
     PRIMARY KEY(id),
     UNIQUE KEY uq_pgdttrash_active(google_subject,active_file_id),
-    KEY idx_pgdttrash_list(google_subject,root_folder_id,anchor_folder_id,status,created_at,id),
+    KEY idx_pgdttrash_actor(trashed_by_user_id,created_at),
+    KEY idx_pgdttrash_list(google_subject,root_folder_id,anchor_folder_id,status,id),
     CONSTRAINT fk_pgdttrash_actor FOREIGN KEY(trashed_by_user_id) REFERENCES users(id) ON DELETE RESTRICT,
     CONSTRAINT fk_pgdttrash_restorer FOREIGN KEY(restored_by_user_id) REFERENCES users(id) ON DELETE RESTRICT,
     CONSTRAINT ck_pgdttrash_status CHECK(status IN ('TRASHING','TRASHED','RESTORING','RESTORED','RECONCILE_REQUIRED','ABORTED','GONE'))
