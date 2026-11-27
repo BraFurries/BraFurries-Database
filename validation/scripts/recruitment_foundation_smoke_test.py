@@ -746,7 +746,7 @@ def run() -> None:
             "SELECT COUNT(*) FROM information_schema.TABLES "
             "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME IN "
             "('guild_role_tool_operations','guild_role_tool_audit')"
-        )) + 5, "schema count includes OAuth, onboarding, artists, revisions, Coddy admin, analytics, global blacklist, role tools and product variants",
+        )) + 11, "schema count includes OAuth, onboarding, artists, revisions, Coddy admin, analytics, global blacklist, role tools, product variants and Drive folders/ACL/uploads",
     )
     count(
         "SELECT COUNT(*) FROM information_schema.TABLES "
@@ -758,6 +758,32 @@ def run() -> None:
         "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() "
         "AND TABLE_NAME IN ('platform_google_drive_connection','platform_google_drive_oauth_attempt','platform_google_drive_audit')",
         3, "institutional Drive connection and OAuth tables exist",
+    )
+    count(
+        "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() "
+        "AND TABLE_NAME='platform_google_drive_managed_folders'",
+        1, "managed institutional Drive folder registry exists",
+    )
+    count(
+        "SELECT COUNT(*) FROM platform_google_drive_managed_folders",
+        0, "migration creates no managed folders",
+    )
+    count(
+        "SELECT COUNT(*) FROM flyway_schema_history WHERE success=1 AND version='20261126.005'",
+        1, "managed Drive folder migration recorded once",
+    )
+    for table in ("platform_google_drive_person_grants", "platform_google_drive_role_grants",
+                  "platform_google_drive_folder_access_audit"):
+        count(f"SELECT COUNT(*) FROM {table}", 0, "Drive ACL table starts empty")
+    count(
+        "SELECT COUNT(*) FROM flyway_schema_history WHERE success=1 AND version='20261126.006'",
+        1, "Drive ACL migration recorded once",
+    )
+    for table in ("platform_google_drive_upload_sessions", "platform_google_drive_upload_audit"):
+        count(f"SELECT COUNT(*) FROM {table}", 0, "Drive upload lifecycle starts empty")
+    count(
+        "SELECT COUNT(*) FROM flyway_schema_history WHERE success=1 AND version='20261126.007'",
+        1, "Drive upload migration recorded once",
     )
     count(
         "SELECT COUNT(*) FROM platform_google_drive_connection",
