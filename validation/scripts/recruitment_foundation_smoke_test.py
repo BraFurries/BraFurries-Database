@@ -746,7 +746,7 @@ def run() -> None:
             "SELECT COUNT(*) FROM information_schema.TABLES "
             "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME IN "
             "('guild_role_tool_operations','guild_role_tool_audit')"
-        )) + 11, "schema count includes OAuth, onboarding, artists, revisions, Coddy admin, analytics, global blacklist, role tools, product variants and Drive folders/ACL/uploads",
+        )) + 13, "schema count includes Drive downloads and folder operations",
     )
     count(
         "SELECT COUNT(*) FROM information_schema.TABLES "
@@ -784,6 +784,12 @@ def run() -> None:
     count(
         "SELECT COUNT(*) FROM flyway_schema_history WHERE success=1 AND version='20261126.007'",
         1, "Drive upload migration recorded once",
+    )
+    for table in ("platform_google_drive_download_tickets", "platform_google_drive_folder_operations"):
+        count(f"SELECT COUNT(*) FROM {table}", 0, "Drive operation tables start empty")
+    count(
+        "SELECT COUNT(*) FROM flyway_schema_history WHERE success=1 AND version='20261127.001'",
+        1, "Drive operations migration recorded once",
     )
     count(
         "SELECT COUNT(*) FROM platform_google_drive_connection",
