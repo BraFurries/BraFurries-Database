@@ -746,7 +746,7 @@ def run() -> None:
             "SELECT COUNT(*) FROM information_schema.TABLES "
             "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME IN "
             "('guild_role_tool_operations','guild_role_tool_audit')"
-        )) + 13, "schema count includes Drive downloads and folder operations",
+        )) + 14, "schema count includes Drive rename operations",
     )
     count(
         "SELECT COUNT(*) FROM information_schema.TABLES "
@@ -790,6 +790,11 @@ def run() -> None:
     count(
         "SELECT COUNT(*) FROM flyway_schema_history WHERE success=1 AND version='20261127.001'",
         1, "Drive operations migration recorded once",
+    )
+    count("SELECT COUNT(*) FROM platform_google_drive_rename_operations", 0, "Drive rename ledger starts empty")
+    count(
+        "SELECT COUNT(*) FROM flyway_schema_history WHERE success=1 AND version='20261127.002'",
+        1, "Drive rename migration recorded once",
     )
     count(
         "SELECT COUNT(*) FROM platform_google_drive_connection",
