@@ -746,7 +746,7 @@ def run() -> None:
             "SELECT COUNT(*) FROM information_schema.TABLES "
             "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME IN "
             "('guild_role_tool_operations','guild_role_tool_audit')"
-        )) + 15, "schema count includes Drive replacement intents",
+        )) + 16, "schema count includes Drive replacement commits",
     )
     count(
         "SELECT COUNT(*) FROM information_schema.TABLES "
@@ -801,6 +801,9 @@ def run() -> None:
         "SELECT COUNT(*) FROM flyway_schema_history WHERE success=1 AND version='20261127.003'",
         1, "Drive replacement migration recorded once",
     )
+    count("SELECT COUNT(*) FROM platform_google_drive_replacement_commits", 0, "Drive replacement commits start empty")
+    count("SELECT COUNT(*) FROM flyway_schema_history WHERE success=1 AND version='20261127.004'",
+        1, "Drive replacement commit migration recorded once")
     count(
         "SELECT COUNT(*) FROM platform_google_drive_connection",
         0, "migration must not create an institutional credential",
