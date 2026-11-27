@@ -746,7 +746,7 @@ def run() -> None:
             "SELECT COUNT(*) FROM information_schema.TABLES "
             "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME IN "
             "('guild_role_tool_operations','guild_role_tool_audit')"
-        )) + 17, "schema count includes Drive transfer operations",
+        )) + 18, "schema count includes Drive trash operations",
     )
     count(
         "SELECT COUNT(*) FROM information_schema.TABLES "
@@ -807,6 +807,9 @@ def run() -> None:
     count("SELECT COUNT(*) FROM platform_google_drive_transfer_operations", 0, "Drive transfer operations start empty")
     count("SELECT COUNT(*) FROM flyway_schema_history WHERE success=1 AND version='20261127.005'",
         1, "Drive transfer migration recorded once")
+    count("SELECT COUNT(*) FROM platform_google_drive_trash_operations", 0, "Drive trash operations start empty")
+    count("SELECT COUNT(*) FROM flyway_schema_history WHERE success=1 AND version='20261127.006'",
+        1, "Drive trash migration recorded once")
     count(
         "SELECT COUNT(*) FROM platform_google_drive_connection",
         0, "migration must not create an institutional credential",
